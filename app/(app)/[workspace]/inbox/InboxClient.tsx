@@ -120,8 +120,23 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
   const [notifTab, setNotifTab] = useState<'inbox'|'settings'>('inbox')
   const [notifEmail, setNotifEmail] = useState(agent.email || '')
   const [triggers, setTriggers] = useState({ new_conversation: true, customer_reply: true, ai_replied: true, resolved: false, urgent: true, digest: false })
+  const [notifs, setNotifs] = useState<any[]>([])
+  const unreadCount = notifs.filter(n => !n.read).length
   const [vpTab, setVpTab] = useState<'visitors'|'recent'|'settings'>('visitors')
   const [vpAlerts, setVpAlerts] = useState({ arrival: true, returning: true, checkout: true, long: false, autoSuggest: true })
+  const [integModal, setIntegModal] = useState<any>(null)
+  const [integSection, setIntegSection] = useState('all')
+  const [integrations, setIntegrations] = useState<any[]>([
+    { id:'whatsapp', section:'messaging', name:'WhatsApp Business', emoji:'💬', logoColor:'#25D366', desc:'Send and receive WhatsApp messages directly in heySynk.', features:['Receive customer WhatsApp messages','Send replies from heySynk inbox','Media & file support','Read receipts'], connected:false, popular:true, fields:[{id:'waPhone',label:'WhatsApp Business Phone',placeholder:'+1234567890',type:'text'},{id:'waToken',label:'API Access Token',placeholder:'EAAxxxxxxx',type:'password'}], events:['message.received','message.sent','message.read'] },
+    { id:'slack', section:'messaging', name:'Slack', emoji:'📬', logoColor:'#4A154B', desc:'Get heySynk notifications and reply from Slack channels.', features:['New conversation alerts','Reply directly from Slack','Daily summary digest','Agent assignment notifications'], connected:false, popular:true, fields:[{id:'slackToken',label:'Bot User OAuth Token',placeholder:'xoxb-xxxxxx',type:'password'},{id:'slackChan',label:'Default Channel',placeholder:'#support',type:'text'}], events:['conversation.new','conversation.resolved','message.new'] },
+    { id:'gmail', section:'email', name:'Gmail', emoji:'📧', logoColor:'#EA4335', desc:'Connect Gmail to receive and reply to emails inside heySynk.', features:['Email-to-conversation routing','Reply via heySynk inbox','Thread tracking','CC/BCC support'], connected:true, popular:true, fields:[{id:'gmailAddr',label:'Gmail Address',placeholder:'support@yourcompany.com',type:'email'}], events:['email.received','email.sent','email.bounced'] },
+    { id:'hubspot', section:'crm', name:'HubSpot', emoji:'🦄', logoColor:'#FF7A59', desc:'Sync contacts, deals and conversations with HubSpot CRM.', features:['Contact sync bi-directional','Deal creation from conversations','Pipeline stage updates','Activity logging'], connected:false, popular:true, fields:[{id:'hsApiKey',label:'HubSpot API Key',placeholder:'pat-na1-xxxxxxxx',type:'password'}], events:['contact.created','contact.updated','deal.stageChanged'] },
+    { id:'zapier', section:'automation', name:'Zapier', emoji:'⚡', logoColor:'#FF4A00', desc:'Connect heySynk to 5,000+ apps with no-code Zapier automations.', features:['Trigger zaps on new conversations','Send data to any Zapier app','Custom field mapping','Multi-step workflows'], connected:false, popular:true, apiKey:true, fields:[], events:['conversation.new','conversation.resolved','message.received'] },
+    { id:'make', section:'automation', name:'Make', emoji:'🔄', logoColor:'#6D00CC', desc:'Build powerful multi-step automations with Make scenarios.', features:['Real-time triggers','Complex workflow scenarios','Data transformation'], connected:false, popular:false, apiKey:true, fields:[], events:['conversation.new','message.received'] },
+    { id:'googleanalytics', section:'analytics', name:'Google Analytics 4', emoji:'📊', logoColor:'#F9AB00', desc:'Track chat widget interactions as GA4 events.', features:['Widget open/close events','Conversation start tracking','CSAT submission events'], connected:false, popular:false, fields:[{id:'gaMeasId',label:'Measurement ID',placeholder:'G-XXXXXXXXXX',type:'text'}], events:[] },
+  ])
+  const [campaignModal, setCampaignModal] = useState<any>(null)
+  const [campaignRules, setCampaignRules] = useState<any[]>([{ trigger: 'Page URL contains', op: 'contains', value: '' }])
   const [adminPage, setAdminPage] = useState('workspace')
   const [selectedWidget, setSelectedWidget] = useState<string | null>(null)
   const [stickyWidgets, setStickyWidgets] = useState<any[]>([{ id: '1', name: 'Need more help?', position: 'right', scope: 'All Articles', enabled: true, color: 'blue', contentType: 'links', text: '', imageUrl: '', caption: '', links: [{ title: 'Contact Support', url: '#' }, { title: 'Video Tutorials', url: '#' }] }, { id: '2', name: 'Important Notice', position: 'left', scope: 'All Articles', enabled: false, color: 'amber', contentType: 'text', text: 'Our support hours are Mon–Fri, 9am–6pm.', imageUrl: '', caption: '', links: [] }])
@@ -139,6 +154,25 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
 
   useEffect(() => { loadConversations() }, [loadConversations])
 
+  // Seed notifications from real conversations
+  useEffect(() => {
+    if (conversations.length === 0) return
+    setNotifs(prev => {
+      if (prev.length > 0) return prev // already seeded
+      return conversations.slice(0, 3).map((c, i) => ({
+        id: 'n_' + c.id,
+        type: i === 0 ? 'new_conversation' : i === 1 ? 'customer_reply' : 'urgent',
+        title: i === 0 ? `New conversation from ${c.contacts?.name || 'Unknown'}` : i === 1 ? `${c.contacts?.name || 'Unknown'} replied` : `Urgent: ${c.contacts?.name || 'Unknown'}`,
+        preview: c.last_message || '',
+        time: timeAgo(c.last_message_at),
+        convId: c.id,
+        conv: c,
+        read: i === 2,
+        emailSent: i < 2,
+      }))
+    })
+  }, [conversations])
+
   useEffect(() => {
     if (!activeConv) return
     const load = async () => {
@@ -146,7 +180,17 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
       setMessages((data || []) as Message[])
     }
     load()
-    const ch = supabase.channel(`conv:${activeConv.id}`).on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${activeConv.id}` }, payload => setMessages(prev => [...prev, payload.new as Message])).subscribe()
+    const ch = supabase.channel(`conv:${activeConv.id}`).on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${activeConv.id}` }, payload => {
+      setMessages(prev => [...prev, payload.new as Message])
+      const msg = payload.new as Message
+      if (msg.sender_type === 'contact' && triggers.customer_reply) {
+        setNotifs(prev => [{
+          id: 'n_' + Date.now(), type: 'customer_reply',
+          title: `${activeConv?.contacts?.name || 'Customer'} replied`,
+          preview: msg.body, time: 'just now', convId: activeConv.id, conv: activeConv, read: false, emailSent: !!notifEmail,
+        }, ...prev])
+      }
+    }).subscribe()
     return () => { supabase.removeChannel(ch) }
   }, [activeConv])
 
@@ -161,6 +205,13 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
     await supabase.from('messages').insert({ conversation_id: activeConv.id, workspace_id: workspace.id, sender_type: 'agent', sender_id: agent.id, body: reply, type: noteMode ? 'note' : 'text', is_private: noteMode })
     await supabase.from('conversations').update({ last_message: reply, last_message_at: new Date().toISOString() }).eq('id', activeConv.id)
     setReply(''); setAiDraft(''); setSending(false); loadConversations()
+    if (triggers.ai_replied && noteMode === false) {
+      setNotifs(prev => [{
+        id: 'n_' + Date.now(), type: 'customer_reply',
+        title: `Reply sent to ${activeConv?.contacts?.name || 'Customer'}`,
+        preview: reply, time: 'just now', convId: activeConv?.id, conv: activeConv, read: false, emailSent: !!notifEmail,
+      }, ...prev])
+    }
   }
 
   async function getAIReply() {
@@ -180,6 +231,13 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
     await supabase.from('conversations').update({ status: 'resolved' }).eq('id', activeConv.id)
     await fetch('/api/email/csat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ conversation_id: activeConv.id }) })
     setActiveConv(null); loadConversations()
+    if (triggers.resolved) {
+      setNotifs(prev => [{
+        id: 'n_' + Date.now(), type: 'resolved',
+        title: `Conversation with ${activeConv?.contacts?.name || 'Customer'} resolved`,
+        preview: activeConv?.last_message || '', time: 'just now', convId: activeConv?.id, conv: activeConv, read: false, emailSent: !!notifEmail,
+      }, ...prev])
+    }
   }
 
   async function signOut() { await supabase.auth.signOut(); router.push('/login') }
@@ -269,7 +327,9 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
           {NAV.map(n => (
             <button key={n.id} onClick={() => setActiveNav(n.id)} title={n.label} style={{ width: 'calc(100% - 16px)', height: 38, borderRadius: 9, border: 'none', cursor: 'pointer', background: activeNav === n.id ? `${accent}15` : 'transparent', display: 'flex', alignItems: 'center', gap: 10, padding: '0 12px', transition: 'background 0.15s' }}>
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={activeNav === n.id ? accent : '#94A3B8'} strokeWidth="1.8" style={{ flexShrink: 0 }}><path strokeLinecap="round" strokeLinejoin="round" d={n.icon} /></svg>
+              {n.id === 'notifications' && unreadCount > 0 && <div style={{ position: 'absolute', top: 6, left: 22, width: 16, height: 16, borderRadius: '50%', background: '#EF4444', fontSize: 9, fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{unreadCount > 9 ? '9+' : unreadCount}</div>}
               {!sidebarCollapsed && <span style={{ fontSize: 13, fontWeight: 600, color: activeNav === n.id ? accent : '#64748B', whiteSpace: 'nowrap' }}>{n.label}</span>}
+              {!sidebarCollapsed && n.id === 'notifications' && unreadCount > 0 && <span style={{ fontSize: 10, fontWeight: 800, padding: '1px 6px', borderRadius: 10, background: '#EF4444', color: '#fff', marginLeft: 'auto' }}>{unreadCount}</span>}
             </button>
           ))}
           <div style={{ flex: 1 }} />
@@ -896,24 +956,115 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
         )}
 
         {activeNav === 'integrations' && (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#F8FAFC' }}>
-            <div style={{ background: '#fff', borderBottom: '1px solid #E2E8F0', padding: '14px 24px' }}>
-              <div style={{ fontSize: 16, fontWeight: 800, color: '#0F172A' }}>Integrations</div>
+          <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
+            {/* Sidebar */}
+            <div style={{ width: 200, background: '#fff', borderRight: '1px solid #E2E8F0', flexShrink: 0, overflowY: 'auto', padding: '12px 8px' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.07em', padding: '8px 10px 6px' }}>Categories</div>
+              {([['all','All Integrations','🔗'],['messaging','Messaging','💬'],['email','Email','📧'],['crm','CRM & Helpdesk','🧑'],['automation','Automation','⚡'],['analytics','Analytics','📊']] as [string,string,string][]).map(([id,label,emoji]) => {
+                const count = id === 'all' ? integrations.length : integrations.filter(i => i.section === id).length
+                const connCount = id === 'all' ? integrations.filter(i => i.connected).length : integrations.filter(i => i.section === id && i.connected).length
+                return (
+                  <button key={id} onClick={() => setIntegSection(id)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 7, border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left', background: integSection === id ? `${accent}12` : 'transparent', color: integSection === id ? accent : '#64748B', fontSize: 13, fontWeight: 600, marginBottom: 2 }}>
+                    <span>{emoji}</span>
+                    <span style={{ flex: 1 }}>{label}</span>
+                    <span style={{ fontSize: 10, color: '#94A3B8' }}>{count}</span>
+                    {connCount > 0 && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#16A34A' }} />}
+                  </button>
+                )
+              })}
             </div>
-            <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16 }}>
-                {([{ name: 'Turbo SMTP', desc: 'Email delivery', status: 'connected', color: '#F59E0B' }, { name: 'Supabase', desc: 'Database', status: 'connected', color: '#3ECF8E' }, { name: 'Anthropic', desc: 'Mira AI', status: 'connected', color: '#7C3AED' }, { name: 'Stripe', desc: 'Billing', status: 'soon', color: '#635BFF' }, { name: 'WhatsApp', desc: 'WA Business', status: 'soon', color: '#25D366' }, { name: 'Slack', desc: 'Notifications', status: 'soon', color: '#4A154B' }] as { name: string; desc: string; status: string; color: string }[]).map(int => (
-                  <div key={int.name} style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 14 }}>
-                    <div style={{ width: 44, height: 44, borderRadius: 12, background: `${int.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <div style={{ width: 20, height: 20, borderRadius: 5, background: int.color }} />
+            {/* Content */}
+            <div style={{ flex: 1, overflowY: 'auto', background: '#F8FAFC' }}>
+              <div style={{ background: '#fff', borderBottom: '1px solid #E2E8F0', padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: '#0F172A' }}>Integrations</div>
+                  <div style={{ fontSize: 12, color: '#94A3B8' }}>{integrations.filter(i => i.connected).length} connected · {integrations.length} available</div>
+                </div>
+              </div>
+              <div style={{ padding: 24 }}>
+                {/* Stats */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginBottom: 24 }}>
+                  {([{label:'Connected',value:String(integrations.filter(i=>i.connected).length),color:accent},{label:'Available',value:String(integrations.length),color:'#0F172A'},{label:'Events Today',value:'12.4K',color:'#0F172A'},{label:'Uptime',value:'99.8%',color:'#16A34A'}] as {label:string;value:string;color:string}[]).map(s => (
+                    <div key={s.label} style={{ background: '#fff', borderRadius: 10, border: '1px solid #E2E8F0', padding: '14px 18px' }}>
+                      <div style={{ fontSize: 22, fontWeight: 800, color: s.color, marginBottom: 3 }}>{s.value}</div>
+                      <div style={{ fontSize: 11, color: '#94A3B8' }}>{s.label}</div>
                     </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A' }}>{int.name}</div>
-                      <div style={{ fontSize: 12, color: '#64748B' }}>{int.desc}</div>
-                    </div>
-                    <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 20, background: int.status === 'connected' ? '#DCFCE7' : '#F1F5F9', color: int.status === 'connected' ? '#16A34A' : '#94A3B8' }}>{int.status === 'connected' ? 'Connected' : 'Soon'}</span>
-                  </div>
-                ))}
+                  ))}
+                </div>
+                {/* Cards */}
+                {(() => {
+                  const filtered = integSection === 'all' ? integrations : integrations.filter(i => i.section === integSection)
+                  const connected = filtered.filter(i => i.connected)
+                  const available = filtered.filter(i => !i.connected)
+                  return (
+                    <>
+                      {connected.length > 0 && (
+                        <>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22C55E' }} /> Connected ({connected.length})
+                          </div>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14, marginBottom: 24 }}>
+                            {connected.map(integ => (
+                              <div key={integ.id} style={{ background: '#fff', borderRadius: 12, border: `1.5px solid #22C55E30`, padding: 20 }}>
+                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
+                                  <div style={{ width: 44, height: 44, borderRadius: 10, background: `${integ.logoColor}18`, border: `1px solid ${integ.logoColor}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>{integ.emoji}</div>
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginBottom: 2 }}>{integ.name}</div>
+                                    <div style={{ fontSize: 11, color: '#64748B' }}>{integ.desc}</div>
+                                  </div>
+                                  <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 10, background: '#DCFCE7', color: '#16A34A', flexShrink: 0 }}>✓ Connected</span>
+                                </div>
+                                <div style={{ marginBottom: 14 }}>
+                                  {integ.features.slice(0,3).map((f: string) => <div key={f} style={{ fontSize: 11, color: '#64748B', display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3 }}><span style={{ color: '#16A34A' }}>✓</span>{f}</div>)}
+                                </div>
+                                <div style={{ display: 'flex', gap: 8 }}>
+                                  <button onClick={() => setIntegModal(integ)} style={{ flex: 1, padding: '7px', borderRadius: 7, border: '1.5px solid #E2E8F0', background: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', color: '#334155' }}>Settings</button>
+                                  <button onClick={() => setIntegrations(prev => prev.map(x => x.id === integ.id ? { ...x, connected: false } : x))} style={{ flex: 1, padding: '7px', borderRadius: 7, border: '1.5px solid #FEE2E2', background: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', color: '#EF4444' }}>Disconnect</button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                      {available.length > 0 && (
+                        <>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginBottom: 12 }}>Available ({available.length})</div>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14, marginBottom: 24 }}>
+                            {available.map(integ => (
+                              <div key={integ.id} style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: 20 }}>
+                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
+                                  <div style={{ width: 44, height: 44, borderRadius: 10, background: `${integ.logoColor}18`, border: `1px solid ${integ.logoColor}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>{integ.emoji}</div>
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginBottom: 2 }}>{integ.name}{integ.popular && <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 8, background: `${accent}15`, color: accent, marginLeft: 6 }}>Popular</span>}</div>
+                                    <div style={{ fontSize: 11, color: '#64748B' }}>{integ.desc}</div>
+                                  </div>
+                                </div>
+                                <div style={{ marginBottom: 14 }}>
+                                  {integ.features.slice(0,3).map((f: string) => <div key={f} style={{ fontSize: 11, color: '#64748B', display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3 }}><span style={{ color: accent }}>✓</span>{f}</div>)}
+                                </div>
+                                <button onClick={() => setIntegModal(integ)} style={{ width: '100%', padding: '8px', borderRadius: 7, border: 'none', background: accent, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Connect</button>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                      {/* Activity log */}
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginBottom: 12 }}>Recent Activity</div>
+                      <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: '4px 0' }}>
+                        {([['ok','WhatsApp message received from +971 50 123 4567','2m ago'],['ok','Gmail email routed to conversation #c1892','14m ago'],['ok','Zapier triggered: new_conversation webhook fired','1h ago'],['fail','HubSpot sync failed: contact duplicate detected','2h ago'],['ok','Slack alert sent to #support channel','3h ago'],['pending','Gmail webhook validation pending','5h ago']] as [string,string,string][]).map(([status,text,time]) => (
+                          <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 18px', borderBottom: '1px solid #F8FAFC' }}>
+                            <div style={{ width: 20, height: 20, borderRadius: '50%', background: status === 'ok' ? '#DCFCE7' : status === 'fail' ? '#FEE2E2' : '#FEF9C3', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, flexShrink: 0 }}>
+                              {status === 'ok' ? '✓' : status === 'fail' ? '✕' : '…'}
+                            </div>
+                            <span style={{ flex: 1, fontSize: 12, color: '#334155' }}>{text}</span>
+                            <span style={{ fontSize: 11, color: '#94A3B8', flexShrink: 0 }}>{time}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )
+                })()}
               </div>
             </div>
           </div>
@@ -947,21 +1098,15 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
 
         {activeNav === 'notifications' && (() => {
           const NOTIF_ICONS: Record<string,string> = { new_conversation: '🆕', customer_reply: '💬', ai_replied: '✦', resolved: '✅', urgent: '🚨' }
-          const demoNotifs = [
-            { id: 'n1', type: 'new_conversation', title: 'New conversation started', preview: 'Hi, I need help with my order #1234', time: '2m ago', read: false, emailSent: true },
-            { id: 'n2', type: 'customer_reply', title: 'Customer replied', preview: 'Thanks for getting back to me so quickly!', time: '18m ago', read: false, emailSent: true },
-            { id: 'n3', type: 'urgent', title: 'Urgent flag raised', preview: 'My payment was charged twice and I need a refund immediately', time: '1h ago', read: true, emailSent: false },
-            { id: 'n4', type: 'resolved', title: 'Conversation resolved', preview: 'Issue with shipping address has been resolved', time: '3h ago', read: true, emailSent: false },
-          ]
           return (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#F8FAFC' }}>
               <div style={{ background: '#fff', borderBottom: '1px solid #E2E8F0', padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
                   <div style={{ fontSize: 16, fontWeight: 800, color: '#0F172A' }}>Notifications</div>
-                  <div style={{ fontSize: 12, color: '#94A3B8' }}>{demoNotifs.filter(n => !n.read).length} unread</div>
+                  <div style={{ fontSize: 12, color: '#94A3B8' }}>{unreadCount} unread</div>
                 </div>
                 {notifTab === 'inbox' && (
-                  <button style={{ fontSize: 12, padding: '6px 14px', borderRadius: 7, border: '1px solid #E2E8F0', background: '#fff', cursor: 'pointer', color: '#64748B', fontWeight: 600 }}>Mark all read</button>
+                  <button onClick={() => setNotifs(prev => prev.map(n => ({ ...n, read: true })))} style={{ fontSize: 12, padding: '6px 14px', borderRadius: 7, border: '1px solid #E2E8F0', background: '#fff', cursor: 'pointer', color: '#64748B', fontWeight: 600 }}>Mark all read</button>
                 )}
               </div>
               {/* Tabs */}
@@ -976,14 +1121,15 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
               <div style={{ flex: 1, overflowY: 'auto' }}>
                 {notifTab === 'inbox' && (
                   <div>
-                    {demoNotifs.length === 0 ? (
+                    {notifs.length === 0 ? (
                       <div style={{ textAlign: 'center', padding: '80px 0' }}>
                         <div style={{ fontSize: 40, marginBottom: 12 }}>🔔</div>
                         <div style={{ fontSize: 14, fontWeight: 600, color: '#94A3B8' }}>No notifications yet</div>
                         <div style={{ fontSize: 12, color: '#CBD5E1' }}>They'll show up here as events happen</div>
                       </div>
-                    ) : demoNotifs.map(n => (
+                    ) : notifs.map(n => (
                       <div key={n.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '16px 24px', borderBottom: '1px solid #F1F5F9', background: n.read ? '#fff' : `${accent}05`, cursor: 'pointer' }}
+                        onClick={() => { setNotifs(prev => prev.map(x => x.id === n.id ? {...x, read: true} : x)); if (n.conv) { setActiveConv(n.conv); setActiveNav('inbox') } }}
                         onMouseEnter={e => (e.currentTarget.style.background = '#F8FAFC')} onMouseLeave={e => (e.currentTarget.style.background = n.read ? '#fff' : `${accent}05`)}>
                         <div style={{ width: 36, height: 36, borderRadius: 10, background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
                           {NOTIF_ICONS[n.type] || '🔔'}
@@ -1547,7 +1693,7 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
                 <div style={{ fontSize: 16, fontWeight: 800, color: '#0F172A' }}>Campaigns</div>
                 <div style={{ fontSize: 12, color: '#94A3B8' }}>{workspace.name}</div>
               </div>
-              <button style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: accent, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <button onClick={() => setCampaignModal({ type: 'chat', icon: '💬', name: '', description: '', message: '', delay: 0 })} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: accent, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
                 New Campaign
               </button>
@@ -1579,7 +1725,7 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
                       </div>
                       <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                         <button style={{ fontSize: 12, padding: '5px 12px', borderRadius: 7, border: '1px solid #E2E8F0', background: '#fff', cursor: 'pointer', color: '#64748B' }}>{camp.status === 'active' ? 'Pause' : 'Activate'}</button>
-                        <button style={{ fontSize: 12, padding: '5px 12px', borderRadius: 7, border: '1px solid #E2E8F0', background: '#fff', cursor: 'pointer', color: '#64748B' }}>Edit</button>
+                        <button onClick={() => setCampaignModal(camp)} style={{ fontSize: 12, padding: '5px 12px', borderRadius: 7, border: '1px solid #E2E8F0', background: '#fff', cursor: 'pointer', color: '#64748B' }}>Edit</button>
                       </div>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, background: '#F8FAFC', borderRadius: 8, padding: '12px 16px' }}>
@@ -1598,6 +1744,171 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
         )}
 
       </div>
+
+      {/* INTEGRATION CONFIG MODAL */}
+      {integModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <div style={{ background: '#fff', borderRadius: 16, width: 560, maxHeight: '85vh', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,.2)' }}>
+            <div style={{ padding: '18px 24px', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: 14, flexShrink: 0 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 10, background: `${integModal.logoColor}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>{integModal.emoji}</div>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: '#0F172A' }}>{integModal.name}</div>
+                <div style={{ fontSize: 12, color: integModal.connected ? '#16A34A' : '#94A3B8' }}>{integModal.connected ? 'Connected ✓' : 'Not connected'}</div>
+              </div>
+              <button onClick={() => setIntegModal(null)} style={{ marginLeft: 'auto', background: 'transparent', border: 'none', cursor: 'pointer', color: '#94A3B8', padding: 4 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
+              {integModal.fields && integModal.fields.length > 0 && (
+                <>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 12 }}>Configuration</div>
+                  {integModal.fields.map((f: any) => (
+                    <div key={f.id} style={{ marginBottom: 14 }}>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#334155', marginBottom: 6 }}>{f.label}</label>
+                      <input type={f.type} placeholder={f.placeholder} style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, fontFamily: 'inherit' }} />
+                    </div>
+                  ))}
+                </>
+              )}
+              {integModal.apiKey && (
+                <>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 12 }}>API Key</div>
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                    <input readOnly value={`sk_live_${workspace.slug}_${integModal.id}_xxxx`} style={{ flex: 1, padding: '9px 12px', borderRadius: 8, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 12, fontFamily: 'monospace', color: '#64748B', background: '#F8FAFC' }} />
+                    <button style={{ padding: '9px 14px', borderRadius: 8, border: '1.5px solid #E2E8F0', background: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Copy</button>
+                  </div>
+                </>
+              )}
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 10 }}>Webhook URL</div>
+              <div style={{ background: '#0F172A', borderRadius: 8, padding: '12px 14px', fontFamily: 'monospace', fontSize: 12, color: '#94A3B8', marginBottom: 18 }}>
+                <span style={{ color: '#C4B5FD' }}>POST</span> <span style={{ color: '#6EE7B7' }}>https://api.heysynk.app/webhooks/{integModal.id}/{workspace.slug}</span>
+              </div>
+              {integModal.events && integModal.events.length > 0 && (
+                <>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 10 }}>Events to sync</div>
+                  {integModal.events.map((ev: string) => (
+                    <div key={ev} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #F1F5F9' }}>
+                      <span style={{ fontSize: 12, color: '#334155', fontFamily: 'monospace' }}>{ev}</span>
+                      <div style={{ width: 36, height: 20, borderRadius: 10, background: accent, cursor: 'pointer', position: 'relative', flexShrink: 0 }}>
+                        <div style={{ position: 'absolute', top: 2, right: 2, width: 16, height: 16, borderRadius: '50%', background: '#fff' }} />
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
+              <div style={{ marginTop: 18 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 10 }}>Connection Test</div>
+                <button style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 18px', borderRadius: 8, border: '1.5px solid #E2E8F0', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#334155' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                  Test Connection
+                </button>
+              </div>
+            </div>
+            <div style={{ padding: '14px 24px', borderTop: '1px solid #E2E8F0', display: 'flex', gap: 10, justifyContent: 'flex-end', flexShrink: 0 }}>
+              <button onClick={() => setIntegModal(null)} style={{ padding: '9px 18px', borderRadius: 8, border: '1.5px solid #E2E8F0', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#64748B' }}>Cancel</button>
+              <button onClick={() => { setIntegrations((prev: any[]) => prev.map(x => x.id === integModal.id ? { ...x, connected: true } : x)); setIntegModal(null) }}
+                style={{ padding: '9px 20px', borderRadius: 8, border: 'none', background: accent, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                {integModal.connected ? 'Save Changes' : `Connect ${integModal.name}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CAMPAIGN EDITOR MODAL */}
+      {campaignModal !== null && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <div style={{ background: '#fff', borderRadius: 16, width: 640, maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,.2)' }}>
+            <div style={{ padding: '16px 24px', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+              <span style={{ fontSize: 15, fontWeight: 800, color: '#0F172A' }}>{campaignModal.id ? 'Edit Campaign' : 'New Campaign'}</span>
+              <button onClick={() => setCampaignModal(null)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94A3B8', padding: 4 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
+              <div style={{ marginBottom: 22 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 12, paddingBottom: 8, borderBottom: '1px solid #F1F5F9' }}>Campaign Details</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 60px', gap: 12, marginBottom: 12 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#334155', marginBottom: 6 }}>Campaign Name</label>
+                    <input defaultValue={campaignModal.name || ''} placeholder="e.g. Pricing Page Nudge" style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, fontFamily: 'inherit' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#334155', marginBottom: 6 }}>Icon</label>
+                    <input defaultValue={campaignModal.icon || '💬'} style={{ width: '100%', padding: '9px 8px', borderRadius: 8, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 22, textAlign: 'center' }} />
+                  </div>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#334155', marginBottom: 6 }}>Description</label>
+                  <input defaultValue={campaignModal.description || ''} placeholder="What does this campaign do?" style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, fontFamily: 'inherit' }} />
+                </div>
+              </div>
+              <div style={{ marginBottom: 22 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 12, paddingBottom: 8, borderBottom: '1px solid #F1F5F9' }}>Message Type</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
+                  {([{id:'chat',icon:'💬',name:'Chat Message',desc:'Appears in the live widget'},{id:'email',icon:'📧',name:'Email',desc:"Sent to visitor's email"},{id:'banner',icon:'📢',name:'Site Banner',desc:'Top bar on your website'}] as any[]).map(t => (
+                    <div key={t.id} onClick={() => setCampaignModal((p: any) => ({ ...p, type: t.id }))}
+                      style={{ padding: 14, borderRadius: 10, border: `2px solid ${(campaignModal.type||'chat') === t.id ? accent : '#E2E8F0'}`, background: (campaignModal.type||'chat') === t.id ? `${accent}08` : '#F8FAFC', cursor: 'pointer', textAlign: 'center' }}>
+                      <div style={{ fontSize: 24, marginBottom: 6 }}>{t.icon}</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#0F172A', marginBottom: 3 }}>{t.name}</div>
+                      <div style={{ fontSize: 11, color: '#94A3B8' }}>{t.desc}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div style={{ marginBottom: 22 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 12, paddingBottom: 8, borderBottom: '1px solid #F1F5F9' }}>Message</div>
+                <textarea defaultValue={campaignModal.message || ''} placeholder="Hi there! 👋 I noticed you're browsing. Can I help?" rows={4}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, resize: 'vertical', fontFamily: 'inherit' }} />
+              </div>
+              <div style={{ marginBottom: 22 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 12, paddingBottom: 8, borderBottom: '1px solid #F1F5F9' }}>Trigger Rules</div>
+                {campaignRules.map((rule, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+                    <select value={rule.trigger} onChange={e => setCampaignRules(prev => prev.map((r,j) => j===i ? {...r, trigger: e.target.value} : r))}
+                      style={{ flex: 2, padding: '8px 10px', borderRadius: 8, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, cursor: 'pointer' }}>
+                      {['Page URL contains','Page URL is exactly','Time on page (seconds)','Session duration (seconds)','Scroll depth (%)','Visit count (>=)','Referrer contains','Is returning visitor'].map(t => (
+                        <option key={t}>{t}</option>
+                      ))}
+                    </select>
+                    <select value={rule.op} onChange={e => setCampaignRules(prev => prev.map((r,j) => j===i ? {...r, op: e.target.value} : r))}
+                      style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, cursor: 'pointer' }}>
+                      {['contains','does not contain','is','is not','>','>=','='].map(o => <option key={o}>{o}</option>)}
+                    </select>
+                    <input value={rule.value} onChange={e => setCampaignRules(prev => prev.map((r,j) => j===i ? {...r, value: e.target.value} : r))}
+                      placeholder="value" style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, fontFamily: 'inherit' }} />
+                    {campaignRules.length > 1 && (
+                      <button onClick={() => setCampaignRules(prev => prev.filter((_,j) => j!==i))}
+                        style={{ width: 28, height: 36, borderRadius: 7, border: '1px solid #FEE2E2', background: '#fff', color: '#EF4444', cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>×</button>
+                    )}
+                  </div>
+                ))}
+                <button onClick={() => setCampaignRules(prev => [...prev, {trigger:'Page URL contains', op:'contains', value:''}])}
+                  style={{ fontSize: 12, fontWeight: 600, padding: '7px 14px', borderRadius: 7, border: `1.5px dashed ${accent}`, background: `${accent}08`, color: accent, cursor: 'pointer', marginTop: 4 }}>
+                  + Add Rule
+                </button>
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 12, paddingBottom: 8, borderBottom: '1px solid #F1F5F9' }}>Delay</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <input type="number" defaultValue={campaignModal.delay || 0} min={0} style={{ width: 100, padding: '9px 12px', borderRadius: 8, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, fontFamily: 'inherit' }} />
+                  <span style={{ fontSize: 13, color: '#64748B' }}>seconds after trigger condition is met</span>
+                </div>
+              </div>
+            </div>
+            <div style={{ padding: '14px 24px', borderTop: '1px solid #E2E8F0', display: 'flex', gap: 10, flexShrink: 0 }}>
+              <button onClick={() => setCampaignModal(null)} style={{ padding: '9px 18px', borderRadius: 8, border: '1.5px solid #E2E8F0', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#64748B' }}>Cancel</button>
+              <button onClick={() => setCampaignModal(null)} style={{ padding: '9px 18px', borderRadius: 8, border: '1.5px solid #E2E8F0', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#334155' }}>Save Draft</button>
+              <div style={{ flex: 1 }} />
+              <button onClick={() => setCampaignModal(null)} style={{ padding: '9px 20px', borderRadius: 8, border: 'none', background: accent, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                Activate Campaign
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* STICKY WIDGET MANAGER MODAL */}
       {stickyOpen && (() => {
