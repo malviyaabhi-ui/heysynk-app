@@ -159,7 +159,6 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
       })
       const data = await res.json()
       setAiDraft(data.reply || '')
-      setReply(data.reply || '')
     } catch {}
     setAiLoading(false)
   }
@@ -349,9 +348,15 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
           {/* AI draft banner */}
           {aiDraft && (
             <div style={{ margin: '0 20px', background: '#F5F3FF', border: '1px solid #C4B5FD', borderRadius: 12, padding: '12px 14px', flexShrink: 0 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#7C3AED', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                MIRA AI DRAFT
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#7C3AED', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                  MIRA AI DRAFT
+                </div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button onClick={() => { setReply(aiDraft); setAiDraft('') }} style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 6, border: 'none', background: '#7C3AED', color: '#fff', cursor: 'pointer' }}>Use this reply</button>
+                  <button onClick={() => setAiDraft('')} style={{ fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 6, border: '1px solid #C4B5FD', background: 'transparent', color: '#7C3AED', cursor: 'pointer' }}>✕</button>
+                </div>
               </div>
               <div style={{ fontSize: 13, color: '#4C1D95', lineHeight: 1.6 }}>{aiDraft}</div>
             </div>
