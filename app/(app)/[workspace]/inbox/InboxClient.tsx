@@ -613,39 +613,229 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
 
       {/* ── KNOWLEDGE BASE ── */}
       {activeNav === 'kb' && (() => {
+
+        /* ── KB EDITOR ── */
         if (kbView === 'edit' && kbEditing !== null) return (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#fff' }}>
-            <div style={{ padding: '14px 24px', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <button onClick={() => { setKbView('list'); setKbEditing(null) }} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#64748B', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600 }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg> Back
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#fff', minWidth: 0 }}>
+
+            {/* Editor top bar */}
+            <div style={{ padding: '10px 20px', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: 10, background: '#fff', flexShrink: 0 }}>
+              <button onClick={() => { setKbView('list'); setKbEditing(null) }}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#64748B', display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 600, padding: '5px 8px', borderRadius: 6 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+                Articles
               </button>
+              {kbEditing.title && (
+                <span style={{ fontSize: 12, color: '#F59E0B', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#F59E0B', display: 'inline-block' }} />
+                  Unsaved changes
+                </span>
+              )}
               <div style={{ flex: 1 }} />
-              <select value={kbEditing.status || 'draft'} onChange={e => setKbEditing(p => ({ ...p, status: e.target.value }))}
-                style={{ fontSize: 12, fontWeight: 600, padding: '5px 10px', borderRadius: 6, border: '1.5px solid #E2E8F0', outline: 'none', cursor: 'pointer', color: kbEditing.status === 'published' ? '#16A34A' : '#CA8A04', background: kbEditing.status === 'published' ? '#DCFCE7' : '#FEF9C3' }}>
-                <option value="draft">Draft</option>
-                <option value="published">Published</option>
-              </select>
-              <select value={kbEditing.category_id || ''} onChange={e => setKbEditing(p => ({ ...p, category_id: e.target.value || null }))}
-                style={{ fontSize: 12, padding: '5px 10px', borderRadius: 6, border: '1.5px solid #E2E8F0', outline: 'none', cursor: 'pointer', color: '#334155' }}>
-                <option value="">No category</option>
-                {kbCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-              <button onClick={saveKBArticle} disabled={kbSaving} style={{ padding: '7px 18px', borderRadius: 8, border: 'none', background: accent, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', opacity: kbSaving ? 0.7 : 1 }}>
-                {kbSaving ? 'Saving…' : kbEditing.id ? 'Update' : 'Save'}
+              <button onClick={() => { setKbEditing(p => ({ ...p, status: 'draft' })); saveKBArticle() }}
+                style={{ padding: '6px 14px', borderRadius: 7, border: '1.5px solid #E2E8F0', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#334155' }}>
+                Save Draft
+              </button>
+              <button onClick={() => { setKbEditing(p => ({ ...p, status: 'published' })); saveKBArticle() }} disabled={kbSaving}
+                style={{ padding: '6px 16px', borderRadius: 7, border: 'none', background: accent, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, opacity: kbSaving ? 0.7 : 1 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                {kbSaving ? 'Saving…' : 'Publish'}
               </button>
             </div>
-            <div style={{ flex: 1, overflowY: 'auto', padding: '40px 20%' }}>
-              <input value={kbEditing.title || ''} placeholder="Article title…" onChange={e => setKbEditing(p => ({ ...p, title: e.target.value }))}
-                style={{ width: '100%', fontSize: 28, fontWeight: 800, color: '#0F172A', border: 'none', outline: 'none', marginBottom: 10, fontFamily: 'inherit' }} />
-              <input value={kbEditing.excerpt || ''} placeholder="Short excerpt…" onChange={e => setKbEditing(p => ({ ...p, excerpt: e.target.value }))}
-                style={{ width: '100%', fontSize: 14, color: '#64748B', border: 'none', outline: 'none', marginBottom: 24, fontFamily: 'inherit' }} />
-              <div style={{ height: 1, background: '#F1F5F9', marginBottom: 28 }} />
-              <textarea value={kbEditing.body || ''} placeholder="Write your article content here…" onChange={e => setKbEditing(p => ({ ...p, body: e.target.value }))}
-                style={{ width: '100%', minHeight: 500, fontSize: 15, color: '#334155', lineHeight: 1.9, border: 'none', outline: 'none', resize: 'none', fontFamily: 'inherit' }} />
+
+            {/* Formatting toolbar */}
+            <div style={{ padding: '8px 20px', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, flexWrap: 'wrap', background: '#fff' }}>
+              {/* Paragraph dropdown */}
+              <select style={{ fontSize: 12, fontWeight: 600, padding: '4px 8px', borderRadius: 6, border: '1.5px solid #E2E8F0', outline: 'none', color: '#334155', cursor: 'pointer', marginRight: 4 }}>
+                <option>Paragraph</option><option>Heading 1</option><option>Heading 2</option><option>Heading 3</option>
+              </select>
+              {/* Format buttons */}
+              {[
+                { label: 'B', title: 'Bold', style: { fontWeight: 900 } },
+                { label: 'I', title: 'Italic', style: { fontStyle: 'italic' } },
+                { label: 'U', title: 'Underline', style: { textDecoration: 'underline' } },
+              ].map(b => (
+                <button key={b.title} title={b.title} style={{ width: 30, height: 28, borderRadius: 5, border: '1px solid #E2E8F0', background: '#fff', cursor: 'pointer', fontSize: 13, color: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center', ...b.style }}>{b.label}</button>
+              ))}
+              <div style={{ width: 1, height: 20, background: '#E2E8F0', margin: '0 4px' }} />
+              {/* List buttons */}
+              <button title="Ordered list" style={{ width: 30, height: 28, borderRadius: 5, border: '1px solid #E2E8F0', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5h11M9 12h11M9 19h11M4 5h.01M4 12h.01M4 19h.01" /></svg>
+              </button>
+              <button title="Unordered list" style={{ width: 30, height: 28, borderRadius: 5, border: '1px solid #E2E8F0', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" /></svg>
+              </button>
+              <button title="Code block" style={{ width: 30, height: 28, borderRadius: 5, border: '1px solid #E2E8F0', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
+              </button>
+              <button title="Link" style={{ width: 30, height: 28, borderRadius: 5, border: '1px solid #E2E8F0', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+              </button>
+              <button title="Divider" style={{ width: 30, height: 28, borderRadius: 5, border: '1px solid #E2E8F0', background: '#fff', cursor: 'pointer', fontSize: 14, color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>—</button>
+              <div style={{ width: 1, height: 20, background: '#E2E8F0', margin: '0 4px' }} />
+              <button title="Undo" style={{ width: 30, height: 28, borderRadius: 5, border: '1px solid #E2E8F0', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
+              </button>
+              <button title="Redo" style={{ width: 30, height: 28, borderRadius: 5, border: '1px solid #E2E8F0', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M21 10H11a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6" /></svg>
+              </button>
+              <div style={{ width: 1, height: 20, background: '#E2E8F0', margin: '0 4px' }} />
+              {/* AI Write */}
+              <button onClick={async () => {
+                if (!kbEditing.title?.trim()) return
+                setKbSaving(true)
+                try {
+                  const res = await fetch('/api/ai/reply', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ context: `Write a comprehensive help article titled: "${kbEditing.title}"`, customer_name: 'Reader', agent_name: agent.name, workspace_id: workspace.id }) })
+                  const data = await res.json()
+                  setKbEditing(p => ({ ...p, body: data.reply || '' }))
+                } catch {}
+                setKbSaving(false)
+              }} style={{ padding: '5px 12px', borderRadius: 6, border: 'none', background: `linear-gradient(135deg, ${accent}, #7C3AED)`, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                AI Write
+              </button>
+              <button style={{ padding: '5px 12px', borderRadius: 6, border: '1.5px solid #E2E8F0', background: '#fff', color: '#334155', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+                Link Article
+              </button>
+            </div>
+
+            {/* Insert Block row */}
+            <div style={{ padding: '6px 20px', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, background: '#FAFAFA' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.06em', marginRight: 4 }}>Insert Block:</span>
+              {[
+                { label: 'Note',    bg: '#DCFCE7', color: '#16A34A', border: '#BBF7D0', prefix: '✓' },
+                { label: 'Warning', bg: '#FEE2E2', color: '#DC2626', border: '#FECACA', prefix: '⚠' },
+                { label: 'Caution', bg: '#FEF9C3', color: '#CA8A04', border: '#FDE68A', prefix: '⚡' },
+                { label: 'Info',    bg: '#DBEAFE', color: '#2563EB', border: '#BFDBFE', prefix: 'ℹ' },
+                { label: 'Tip',     bg: '#F3E8FF', color: '#7C3AED', border: '#E9D5FF', prefix: '+' },
+                { label: 'Success', bg: '#DCFCE7', color: '#16A34A', border: '#BBF7D0', prefix: '✓' },
+              ].map(b => (
+                <button key={b.label} onClick={() => setKbEditing(p => ({ ...p, body: (p.body || '') + `\n\n[${b.label.toUpperCase()}] ` }))}
+                  style={{ padding: '3px 10px', borderRadius: 5, border: `1px solid ${b.border}`, background: b.bg, color: b.color, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                  {b.prefix} {b.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Editor area + Right panel */}
+            <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
+              {/* Main writing area */}
+              <div style={{ flex: 1, overflowY: 'auto', padding: '36px 60px' }}>
+                <input value={kbEditing.title || ''} placeholder="Article title…"
+                  onChange={e => setKbEditing(p => ({ ...p, title: e.target.value }))}
+                  style={{ width: '100%', fontSize: 28, fontWeight: 800, color: '#0F172A', border: 'none', outline: 'none', marginBottom: 20, fontFamily: 'inherit', lineHeight: 1.3 }} />
+                <textarea value={kbEditing.body || ''} placeholder="Start writing your article… or use AI Write to generate content from your title."
+                  onChange={e => setKbEditing(p => ({ ...p, body: e.target.value }))}
+                  style={{ width: '100%', minHeight: 500, fontSize: 15, color: '#334155', lineHeight: 1.9, border: 'none', outline: 'none', resize: 'none', fontFamily: 'inherit' }} />
+              </div>
+
+              {/* Right panel */}
+              <div style={{ width: 240, borderLeft: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', flexShrink: 0, background: '#fff' }}>
+                {/* Tabs */}
+                <div style={{ display: 'flex', borderBottom: '1px solid #E2E8F0' }}>
+                  {['Settings', 'SEO', 'TOC'].map(tab => (
+                    <button key={tab} onClick={() => setKbEditing(p => ({ ...p, _tab: tab } as any))}
+                      style={{ flex: 1, padding: '10px 0', border: 'none', background: 'transparent', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                        color: (kbEditing as any)._tab === tab || (!(kbEditing as any)._tab && tab === 'Settings') ? accent : '#64748B',
+                        borderBottom: (kbEditing as any)._tab === tab || (!(kbEditing as any)._tab && tab === 'Settings') ? `2px solid ${accent}` : '2px solid transparent' }}>
+                      {tab}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Settings tab */}
+                {((kbEditing as any)._tab === 'Settings' || !(kbEditing as any)._tab) && (
+                  <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
+                    {/* Category */}
+                    <div style={{ marginBottom: 18 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 8 }}>Category</div>
+                      <select value={kbEditing.category_id || ''} onChange={e => setKbEditing(p => ({ ...p, category_id: e.target.value || null }))}
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: 7, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, color: '#334155', cursor: 'pointer' }}>
+                        <option value="">No category</option>
+                        {kbCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                    </div>
+                    {/* Sub-category */}
+                    <div style={{ marginBottom: 18 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 8 }}>Sub-Category</div>
+                      <input placeholder="e.g. Refunds, API Keys…" style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, color: '#334155', fontFamily: 'inherit' }} />
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 8 }}>
+                        {['Quickstart', 'Installation', 'First Steps', 'FAQ'].map(t => (
+                          <span key={t} style={{ fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 5, background: '#F1F5F9', color: '#64748B', cursor: 'pointer' }}>{t}</span>
+                        ))}
+                      </div>
+                    </div>
+                    {/* Tags */}
+                    <div style={{ marginBottom: 18 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 8 }}>Tags</div>
+                      <input placeholder="Add tag, press Enter…" style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, color: '#334155', fontFamily: 'inherit' }}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' && (e.target as HTMLInputElement).value.trim()) {
+                            setKbEditing(p => ({ ...p, tags: [...(p.tags || []), (e.target as HTMLInputElement).value.trim()] }));
+                            (e.target as HTMLInputElement).value = ''
+                          }
+                        }} />
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 8 }}>
+                        {(kbEditing.tags || []).map((t, i) => (
+                          <span key={i} onClick={() => setKbEditing(p => ({ ...p, tags: p.tags?.filter((_, j) => j !== i) }))}
+                            style={{ fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 5, background: `${accent}15`, color: accent, cursor: 'pointer' }}>{t} ✕</span>
+                        ))}
+                      </div>
+                    </div>
+                    {/* Details */}
+                    <div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 10 }}>Details</div>
+                      {[
+                        { label: 'Views', value: '0' },
+                        { label: 'Updated', value: kbEditing.updated_at ? timeAgo(kbEditing.updated_at) : '—' },
+                        { label: 'Author', value: agent.name },
+                      ].map(row => (
+                        <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                          <span style={{ fontSize: 12, color: '#94A3B8' }}>{row.label}</span>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: '#334155' }}>{row.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* SEO tab */}
+                {(kbEditing as any)._tab === 'SEO' && (
+                  <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
+                    <div style={{ marginBottom: 14 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 6 }}>SEO Title</div>
+                      <input placeholder="Page title for search engines…" style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, fontFamily: 'inherit' }} />
+                    </div>
+                    <div style={{ marginBottom: 14 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 6 }}>Meta Description</div>
+                      <textarea placeholder="Brief description for search results…" rows={4} style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, resize: 'none', fontFamily: 'inherit' }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 6 }}>Slug</div>
+                      <input value={kbEditing.slug || slugify(kbEditing.title || '')} onChange={e => setKbEditing(p => ({ ...p, slug: e.target.value }))}
+                        style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 12, fontFamily: 'monospace', color: '#64748B' }} />
+                    </div>
+                  </div>
+                )}
+
+                {/* TOC tab */}
+                {(kbEditing as any)._tab === 'TOC' && (
+                  <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
+                    <div style={{ fontSize: 12, color: '#94A3B8', marginBottom: 12 }}>Headings will appear here as you write.</div>
+                    {(kbEditing.body || '').split('\n').filter(l => l.startsWith('#')).map((l, i) => {
+                      const level = l.match(/^#+/)?.[0].length || 1
+                      return <div key={i} style={{ fontSize: 12, color: '#334155', paddingLeft: (level - 1) * 12, marginBottom: 6, cursor: 'pointer' }}>{l.replace(/^#+\s*/, '')}</div>
+                    })}
+                    {!(kbEditing.body || '').includes('#') && <div style={{ fontSize: 12, color: '#CBD5E1' }}>No headings yet. Use # Heading syntax.</div>}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )
 
+        /* ── NEW CATEGORY ── */
         if (kbView === 'new-cat') return (
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F8FAFC' }}>
             <div style={{ background: '#fff', borderRadius: 16, padding: 32, width: 440, boxShadow: '0 8px 32px rgba(0,0,0,.1)' }}>
@@ -678,102 +868,122 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
           </div>
         )
 
+        /* ── KB LIST ── */
         return (
-          <div style={{ flex: 1, display: 'flex', background: '#F8FAFC' }}>
-            {/* KB Categories sidebar */}
-            <div style={{ width: 220, background: '#fff', borderRight: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-              <div style={{ padding: '16px 14px 12px', borderBottom: '1px solid #F1F5F9' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 10 }}>Categories</div>
-                <button onClick={() => setKbView('new-cat')} style={{ width: '100%', padding: '7px 10px', borderRadius: 8, border: `1.5px dashed ${accent}`, background: `${accent}08`, color: accent, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-                  New Category
-                </button>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+            {/* KB top bar */}
+            <div style={{ background: '#fff', borderBottom: '1px solid #E2E8F0', padding: '14px 24px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 18, fontWeight: 800, color: '#0F172A' }}>Knowledge Base</div>
+                <div style={{ fontSize: 12, color: '#94A3B8' }}>{kbArticles.length} article{kbArticles.length !== 1 ? 's' : ''} · {workspace.name}</div>
               </div>
-              <div style={{ flex: 1, overflowY: 'auto', padding: 8 }}>
-                <button onClick={() => setKbActiveCat(null)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 8, border: 'none', cursor: 'pointer', marginBottom: 2, background: kbActiveCat === null ? `${accent}12` : 'transparent' }}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={kbActiveCat === null ? accent : '#94A3B8'} strokeWidth="1.8"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: kbActiveCat === null ? accent : '#334155' }}>All Articles</span>
-                </button>
-                {kbCategories.map(cat => (
-                  <div key={cat.id} style={{ display: 'flex', alignItems: 'center', borderRadius: 8, background: kbActiveCat === cat.id ? `${accent}12` : 'transparent', marginBottom: 2 }}>
-                    <button onClick={() => setKbActiveCat(cat.id)} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', border: 'none', cursor: 'pointer', background: 'transparent', textAlign: 'left' }}>
-                      <KBIcon id={cat.icon || 'book'} size={15} color={kbActiveCat === cat.id ? accent : '#94A3B8'} />
-                      <span style={{ fontSize: 13, fontWeight: 600, color: kbActiveCat === cat.id ? accent : '#334155' }}>{cat.name}</span>
-                    </button>
-                    <button onClick={async () => { if (confirm('Delete category?')) { await supabase.from('kb_categories').delete().eq('id', cat.id); if (kbActiveCat === cat.id) setKbActiveCat(null); loadKBCategories(); loadKBArticles() } }} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '6px 8px', color: '#CBD5E1' }}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                    </button>
-                  </div>
-                ))}
+              {/* Search articles */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#F8FAFC', border: '1.5px solid #E2E8F0', borderRadius: 8, padding: '7px 12px', width: 200 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2"><circle cx="11" cy="11" r="8" /><path strokeLinecap="round" d="m21 21-4.35-4.35" /></svg>
+                <input placeholder="Search articles…" value={kbSearch} onChange={e => setKbSearch(e.target.value)} style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: 13, color: '#334155', width: '100%' }} />
               </div>
+              {/* Help Centre */}
+              <button style={{ padding: '7px 14px', borderRadius: 8, border: '1.5px solid #E2E8F0', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#334155', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path strokeLinecap="round" strokeLinejoin="round" d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01" /></svg>
+                Help Centre
+              </button>
+              {/* Sticky Widgets */}
+              <button style={{ padding: '7px 14px', borderRadius: 8, border: '1.5px solid #E2E8F0', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#334155', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg>
+                Sticky Widgets
+              </button>
+              {/* New Article */}
+              <button onClick={() => { setKbEditing({ status: 'draft', category_id: kbActiveCat, tags: [] }); setKbView('edit') }}
+                style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: accent, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                New Article
+              </button>
             </div>
 
-            {/* Articles list */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-              <div style={{ background: '#fff', borderBottom: '1px solid #E2E8F0', padding: '14px 24px', display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: '#0F172A' }}>{kbActiveCat ? kbCategories.find(c => c.id === kbActiveCat)?.name : 'All Articles'}</div>
-                  <div style={{ fontSize: 12, color: '#94A3B8' }}>{filteredKBArticles.length} article{filteredKBArticles.length !== 1 ? 's' : ''}</div>
+            {/* KB body — categories sidebar + articles */}
+            <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
+              {/* Categories sidebar */}
+              <div style={{ width: 220, background: '#fff', borderRight: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+                <div style={{ padding: '14px 12px 10px', borderBottom: '1px solid #F1F5F9' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 10 }}>Categories</div>
+                  <button onClick={() => setKbView('new-cat')} style={{ width: '100%', padding: '7px 10px', borderRadius: 8, border: `1.5px dashed ${accent}`, background: `${accent}08`, color: accent, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                    New Category
+                  </button>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#F8FAFC', border: '1.5px solid #E2E8F0', borderRadius: 8, padding: '7px 12px', width: 200 }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2"><circle cx="11" cy="11" r="8" /><path strokeLinecap="round" d="m21 21-4.35-4.35" /></svg>
-                  <input placeholder="Search articles…" value={kbSearch} onChange={e => setKbSearch(e.target.value)} style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: 13, color: '#334155', width: '100%' }} />
-                </div>
-                <div style={{ display: 'flex', gap: 4 }}>
-                  {(['all', 'published', 'draft'] as const).map(s => (
-                    <button key={s} onClick={() => setKbStatusFilter(s)} style={{ padding: '6px 12px', borderRadius: 7, border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', textTransform: 'capitalize', background: kbStatusFilter === s ? accent : '#F1F5F9', color: kbStatusFilter === s ? '#fff' : '#64748B' }}>{s}</button>
+                <div style={{ flex: 1, overflowY: 'auto', padding: 8 }}>
+                  <button onClick={() => setKbActiveCat(null)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 8, border: 'none', cursor: 'pointer', marginBottom: 2, background: kbActiveCat === null ? `${accent}12` : 'transparent' }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={kbActiveCat === null ? accent : '#94A3B8'} strokeWidth="1.8"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: kbActiveCat === null ? accent : '#334155' }}>All Articles</span>
+                  </button>
+                  {kbCategories.map(cat => (
+                    <div key={cat.id} style={{ display: 'flex', alignItems: 'center', borderRadius: 8, background: kbActiveCat === cat.id ? `${accent}12` : 'transparent', marginBottom: 2 }}>
+                      <button onClick={() => setKbActiveCat(cat.id)} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', border: 'none', cursor: 'pointer', background: 'transparent', textAlign: 'left' }}>
+                        <KBIcon id={cat.icon || 'book'} size={15} color={kbActiveCat === cat.id ? accent : '#94A3B8'} />
+                        <span style={{ fontSize: 13, fontWeight: 600, color: kbActiveCat === cat.id ? accent : '#334155' }}>{cat.name}</span>
+                      </button>
+                      <button onClick={async () => { if (confirm('Delete category?')) { await supabase.from('kb_categories').delete().eq('id', cat.id); if (kbActiveCat === cat.id) setKbActiveCat(null); loadKBCategories(); loadKBArticles() } }} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '6px 8px', color: '#CBD5E1' }}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
+                    </div>
                   ))}
                 </div>
-                <button onClick={() => { setKbEditing({ status: 'draft', category_id: kbActiveCat }); setKbView('edit') }} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: accent, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-                  New Article
-                </button>
               </div>
-              <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
-                {filteredKBArticles.length === 0 && (
-                  <div style={{ textAlign: 'center', padding: '80px 0', color: '#94A3B8' }}>
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#E2E8F0" strokeWidth="1.2" style={{ margin: '0 auto 12px', display: 'block' }}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: '#CBD5E1', marginBottom: 8 }}>No articles yet</div>
-                    <button onClick={() => { setKbEditing({ status: 'draft', category_id: kbActiveCat }); setKbView('edit') }} style={{ padding: '9px 20px', borderRadius: 8, border: 'none', background: accent, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Write first article</button>
+
+              {/* Articles list */}
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#F8FAFC', minWidth: 0 }}>
+                {/* Filter bar */}
+                <div style={{ background: '#fff', borderBottom: '1px solid #F1F5F9', padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', flex: 1 }}>{kbActiveCat ? kbCategories.find(c => c.id === kbActiveCat)?.name : 'All Articles'} <span style={{ fontSize: 12, fontWeight: 400, color: '#94A3B8' }}>({filteredKBArticles.length})</span></span>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    {(['all', 'published', 'draft'] as const).map(s => (
+                      <button key={s} onClick={() => setKbStatusFilter(s)} style={{ padding: '5px 12px', borderRadius: 7, border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', textTransform: 'capitalize', background: kbStatusFilter === s ? accent : '#F1F5F9', color: kbStatusFilter === s ? '#fff' : '#64748B' }}>{s}</button>
+                    ))}
                   </div>
-                )}
-                <div style={{ display: 'grid', gap: 10 }}>
-                  {filteredKBArticles.map(article => {
-                    const cat = kbCategories.find(c => c.id === article.category_id)
-                    return (
-                      <div key={article.id} style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 16, cursor: 'pointer' }}
-                        onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,.07)')}
-                        onMouseLeave={e => (e.currentTarget.style.boxShadow = 'none')}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                            <span style={{ fontSize: 14, fontWeight: 700, color: '#0F172A' }}>{article.title}</span>
-                            <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: article.status === 'published' ? '#DCFCE7' : '#FEF9C3', color: article.status === 'published' ? '#16A34A' : '#CA8A04' }}>{article.status}</span>
+                </div>
+
+                <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
+                  {filteredKBArticles.length === 0 && (
+                    <div style={{ textAlign: 'center', padding: '80px 0', color: '#94A3B8' }}>
+                      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#E2E8F0" strokeWidth="1.2" style={{ margin: '0 auto 12px', display: 'block' }}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: '#CBD5E1', marginBottom: 8 }}>No articles yet</div>
+                      <button onClick={() => { setKbEditing({ status: 'draft', category_id: kbActiveCat, tags: [] }); setKbView('edit') }} style={{ padding: '9px 20px', borderRadius: 8, border: 'none', background: accent, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Write first article</button>
+                    </div>
+                  )}
+                  <div style={{ display: 'grid', gap: 10 }}>
+                    {filteredKBArticles.map(article => {
+                      const cat = kbCategories.find(c => c.id === article.category_id)
+                      return (
+                        <div key={article.id} style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 16, cursor: 'pointer' }}
+                          onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,.07)')}
+                          onMouseLeave={e => (e.currentTarget.style.boxShadow = 'none')}
+                          onClick={() => { setKbEditing(article); setKbView('edit') }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                              <span style={{ fontSize: 14, fontWeight: 700, color: '#0F172A' }}>{article.title}</span>
+                              <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20, flexShrink: 0, background: article.status === 'published' ? '#DCFCE7' : '#FEF9C3', color: article.status === 'published' ? '#16A34A' : '#CA8A04' }}>{article.status}</span>
+                            </div>
+                            {article.excerpt && <div style={{ fontSize: 13, color: '#64748B', marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{article.excerpt}</div>}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              {cat && <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#94A3B8' }}><KBIcon id={cat.icon || 'book'} size={11} color="#94A3B8" /> {cat.name}</span>}
+                              <span style={{ fontSize: 11, color: '#CBD5E1' }}>Updated {timeAgo(article.updated_at)}</span>
+                            </div>
                           </div>
-                          {article.excerpt && <div style={{ fontSize: 13, color: '#64748B', marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{article.excerpt}</div>}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            {cat && <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#94A3B8' }}><KBIcon id={cat.icon || 'book'} size={11} color="#94A3B8" /> {cat.name}</span>}
-                            <span style={{ fontSize: 11, color: '#CBD5E1' }}>Updated {timeAgo(article.updated_at)}</span>
+                          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                            <button onClick={async e => { e.stopPropagation(); await supabase.from('kb_articles').update({ status: article.status === 'published' ? 'draft' : 'published' }).eq('id', article.id); loadKBArticles() }}
+                              title={article.status === 'published' ? 'Unpublish' : 'Publish'}
+                              style={{ width: 32, height: 32, borderRadius: 7, border: '1.5px solid #E2E8F0', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}>
+                              {article.status === 'published' ? <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg> : <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>}
+                            </button>
+                            <button onClick={async e => { e.stopPropagation(); if (confirm('Delete?')) { await supabase.from('kb_articles').delete().eq('id', article.id); loadKBArticles() } }}
+                              style={{ width: 32, height: 32, borderRadius: 7, border: '1.5px solid #FEE2E2', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#EF4444' }}>
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
                           </div>
                         </div>
-                        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                          <button onClick={async e => { e.stopPropagation(); await supabase.from('kb_articles').update({ status: article.status === 'published' ? 'draft' : 'published' }).eq('id', article.id); loadKBArticles() }}
-                            style={{ width: 32, height: 32, borderRadius: 7, border: '1.5px solid #E2E8F0', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}>
-                            {article.status === 'published'
-                              ? <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>
-                              : <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>}
-                          </button>
-                          <button onClick={e => { e.stopPropagation(); setKbEditing(article); setKbView('edit') }}
-                            style={{ width: 32, height: 32, borderRadius: 7, border: '1.5px solid #E2E8F0', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}>
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                          </button>
-                          <button onClick={async e => { e.stopPropagation(); if (confirm('Delete?')) { await supabase.from('kb_articles').delete().eq('id', article.id); loadKBArticles() } }}
-                            style={{ width: 32, height: 32, borderRadius: 7, border: '1.5px solid #FEE2E2', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#EF4444' }}>
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                          </button>
-                        </div>
-                      </div>
-                    )
-                  })}
+                      )
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
