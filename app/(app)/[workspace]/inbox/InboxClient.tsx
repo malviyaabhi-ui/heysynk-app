@@ -198,41 +198,51 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
     <div style={{ display: 'flex', height: '100vh', background: '#fff', fontFamily: '"SF Pro Display",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif', overflow: 'hidden' }}>
 
       {/* ── Rail nav ── */}
-      <div style={{ width: sidebarCollapsed ? 56 : 200, background: '#1E293B', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '10px 0', gap: 2, flexShrink: 0, transition: 'width 0.2s', overflow: 'hidden' }}>
+      <div style={{ width: sidebarCollapsed ? 56 : 200, background: '#fff', borderRight: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '10px 0', gap: 2, flexShrink: 0, transition: 'width 0.2s', overflow: 'hidden' }}>
         {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', marginBottom: 8, width: '100%' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflow: 'hidden', minWidth: 0 }}>
-              <div style={{ width: 32, height: 32, borderRadius: 9, background: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: '#fff', flexShrink: 0 }}>hs</div>
-              {!sidebarCollapsed && <span style={{ fontSize: 15, fontWeight: 800, color: '#fff', letterSpacing: '-0.3px', whiteSpace: 'nowrap' }}>hey<span style={{ color: accent }}>Synk</span></span>}
-            </div>
-            <button onClick={() => setSidebarCollapsed(p => !p)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 4, borderRadius: 6, flexShrink: 0, animation: 'glow-pulse 2s ease-in-out infinite' }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={accent} strokeWidth="2.5" style={{ filter: `drop-shadow(0 0 4px ${accent})` }}>
-                {sidebarCollapsed
-                  ? <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                  : <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />}
+        {/* Logo row */}
+        {sidebarCollapsed ? (
+          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, marginBottom: 8, padding: '8px 0' }}>
+            <div style={{ width: 32, height: 32, borderRadius: 9, background: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: '#fff' }}>hs</div>
+            <button onClick={() => setSidebarCollapsed(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 2 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={accent} strokeWidth="2.5" style={{ filter: `drop-shadow(0 0 4px ${accent})`, display: 'block' }}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
               </svg>
             </button>
           </div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', marginBottom: 8, width: '100%' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 9, background: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: '#fff', flexShrink: 0 }}>hs</div>
+              <span style={{ fontSize: 15, fontWeight: 800, color: '#0F172A', letterSpacing: '-0.3px', whiteSpace: 'nowrap' }}>hey<span style={{ color: accent }}>Synk</span></span>
+            </div>
+            <button onClick={() => setSidebarCollapsed(true)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 2 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={accent} strokeWidth="2.5" style={{ filter: `drop-shadow(0 0 4px ${accent})`, display: 'block' }}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+          </div>
+        )}
         {NAV.map(n => (
           <button key={n.id} onClick={() => setActiveNav(n.id)} title={n.label} style={{
             width: 'calc(100% - 16px)', height: 38, borderRadius: 9, border: 'none', cursor: 'pointer',
-            background: activeNav === n.id ? `${accent}22` : 'transparent',
+            background: activeNav === n.id ? `${accent}15` : 'transparent',
             display: 'flex', alignItems: 'center', gap: 10, padding: '0 12px',
             transition: 'background 0.15s',
           }}>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={activeNav === n.id ? accent : '#475569'} strokeWidth="1.8" style={{ flexShrink: 0 }}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={activeNav === n.id ? accent : '#94A3B8'} strokeWidth="1.8" style={{ flexShrink: 0 }}>
               <path strokeLinecap="round" strokeLinejoin="round" d={n.icon} />
             </svg>
-            {!sidebarCollapsed && <span style={{ fontSize: 13, fontWeight: 600, color: activeNav === n.id ? '#fff' : '#64748B', whiteSpace: 'nowrap' }}>{n.label}</span>}
+            {!sidebarCollapsed && <span style={{ fontSize: 13, fontWeight: 600, color: activeNav === n.id ? accent : '#64748B', whiteSpace: 'nowrap' }}>{n.label}</span>}
           </button>
         ))}
         {/* Spacer + avatar */}
         <div style={{ flex: 1 }} />
-        <button onClick={signOut} title="Sign out" style={{ width: 'calc(100% - 16px)', height: 44, borderRadius: 10, background: '#1E293B', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, padding: '0 12px', marginBottom: 8 }}>
+        <button onClick={signOut} title="Sign out" style={{ width: 'calc(100% - 16px)', height: 44, borderRadius: 10, background: '#F1F5F9', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, padding: '0 12px', marginBottom: 8 }}>
           <div style={{ width: 28, height: 28, borderRadius: '50%', background: avatarColor(agent.name), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, color: '#fff', flexShrink: 0 }}>{initials(agent.name)}</div>
           {!sidebarCollapsed && <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{agent.name}</div>
-            <div style={{ fontSize: 10, color: '#475569' }}>Sign out</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{agent.name}</div>
+            <div style={{ fontSize: 10, color: '#94A3B8' }}>Sign out</div>
           </div>}
         </button>
       </div>
