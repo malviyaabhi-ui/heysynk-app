@@ -20,6 +20,7 @@ interface Message {
 }
 
 const NAV = [
+  { id: 'search',       label: 'Search',         icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0' },
   { id: 'inbox',        label: 'Inbox',          icon: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
   { id: 'kb',           label: 'Knowledge Base',  icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253' },
   { id: 'contacts',     label: 'Contacts',        icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z' },
@@ -192,18 +193,20 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
   )
 
   return (
+    <>
+    <style>{`@keyframes glow-pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }`}</style>
     <div style={{ display: 'flex', height: '100vh', background: '#fff', fontFamily: '"SF Pro Display",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif', overflow: 'hidden' }}>
 
       {/* ── Rail nav ── */}
-      <div style={{ width: sidebarCollapsed ? 56 : 200, background: '#0F172A', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '10px 0', gap: 2, flexShrink: 0, transition: 'width 0.2s', overflow: 'hidden' }}>
+      <div style={{ width: sidebarCollapsed ? 56 : 200, background: '#1E293B', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '10px 0', gap: 2, flexShrink: 0, transition: 'width 0.2s', overflow: 'hidden' }}>
         {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', marginBottom: 8, width: '100%' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflow: 'hidden', minWidth: 0 }}>
               <div style={{ width: 32, height: 32, borderRadius: 9, background: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: '#fff', flexShrink: 0 }}>hs</div>
               {!sidebarCollapsed && <span style={{ fontSize: 15, fontWeight: 800, color: '#fff', letterSpacing: '-0.3px', whiteSpace: 'nowrap' }}>hey<span style={{ color: accent }}>Synk</span></span>}
             </div>
-            <button onClick={() => setSidebarCollapsed(p => !p)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 4, borderRadius: 6, flexShrink: 0 }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <button onClick={() => setSidebarCollapsed(p => !p)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 4, borderRadius: 6, flexShrink: 0, animation: 'glow-pulse 2s ease-in-out infinite' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={accent} strokeWidth="2.5" style={{ filter: `drop-shadow(0 0 4px ${accent})` }}>
                 {sidebarCollapsed
                   ? <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                   : <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />}
@@ -456,5 +459,6 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
         </div>
       )}
     </div>
+  </>
   )
 }
