@@ -117,6 +117,11 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
   const [newCatIcon, setNewCatIcon] = useState('book')
   const [newCatDesc, setNewCatDesc] = useState('')
   const [stickyOpen, setStickyOpen] = useState(false)
+  const [notifTab, setNotifTab] = useState<'inbox'|'settings'>('inbox')
+  const [notifEmail, setNotifEmail] = useState(agent.email || '')
+  const [triggers, setTriggers] = useState({ new_conversation: true, customer_reply: true, ai_replied: true, resolved: false, urgent: true, digest: false })
+  const [vpTab, setVpTab] = useState<'visitors'|'recent'|'settings'>('visitors')
+  const [vpAlerts, setVpAlerts] = useState({ arrival: true, returning: true, checkout: true, long: false, autoSuggest: true })
   const [adminPage, setAdminPage] = useState('workspace')
   const [selectedWidget, setSelectedWidget] = useState<string | null>(null)
   const [stickyWidgets, setStickyWidgets] = useState<any[]>([{ id: '1', name: 'Need more help?', position: 'right', scope: 'All Articles', enabled: true, color: 'blue', contentType: 'links', text: '', imageUrl: '', caption: '', links: [{ title: 'Contact Support', url: '#' }, { title: 'Video Tutorials', url: '#' }] }, { id: '2', name: 'Important Notice', position: 'left', scope: 'All Articles', enabled: false, color: 'amber', contentType: 'text', text: 'Our support hours are Mon–Fri, 9am–6pm.', imageUrl: '', caption: '', links: [] }])
@@ -940,26 +945,219 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
           </div>
         )}
 
-        {activeNav === 'notifications' && <Placeholder accent={accent} icon="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" title="Notifications" desc="Configure agent alerts and notification preferences." />}
+        {activeNav === 'notifications' && (() => {
+          const NOTIF_ICONS: Record<string,string> = { new_conversation: '🆕', customer_reply: '💬', ai_replied: '✦', resolved: '✅', urgent: '🚨' }
+          const demoNotifs = [
+            { id: 'n1', type: 'new_conversation', title: 'New conversation started', preview: 'Hi, I need help with my order #1234', time: '2m ago', read: false, emailSent: true },
+            { id: 'n2', type: 'customer_reply', title: 'Customer replied', preview: 'Thanks for getting back to me so quickly!', time: '18m ago', read: false, emailSent: true },
+            { id: 'n3', type: 'urgent', title: 'Urgent flag raised', preview: 'My payment was charged twice and I need a refund immediately', time: '1h ago', read: true, emailSent: false },
+            { id: 'n4', type: 'resolved', title: 'Conversation resolved', preview: 'Issue with shipping address has been resolved', time: '3h ago', read: true, emailSent: false },
+          ]
+          return (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#F8FAFC' }}>
+              <div style={{ background: '#fff', borderBottom: '1px solid #E2E8F0', padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: '#0F172A' }}>Notifications</div>
+                  <div style={{ fontSize: 12, color: '#94A3B8' }}>{demoNotifs.filter(n => !n.read).length} unread</div>
+                </div>
+                {notifTab === 'inbox' && (
+                  <button style={{ fontSize: 12, padding: '6px 14px', borderRadius: 7, border: '1px solid #E2E8F0', background: '#fff', cursor: 'pointer', color: '#64748B', fontWeight: 600 }}>Mark all read</button>
+                )}
+              </div>
+              {/* Tabs */}
+              <div style={{ background: '#fff', borderBottom: '1px solid #E2E8F0', display: 'flex', gap: 0 }}>
+                {(['inbox', 'settings'] as const).map(tab => (
+                  <button key={tab} onClick={() => setNotifTab(tab)}
+                    style={{ padding: '10px 20px', border: 'none', background: 'transparent', fontSize: 13, fontWeight: 700, cursor: 'pointer', color: notifTab === tab ? accent : '#64748B', borderBottom: notifTab === tab ? `2px solid ${accent}` : '2px solid transparent', textTransform: 'capitalize' as const }}>
+                    {tab === 'settings' ? '⚙ Settings' : 'Inbox'}
+                  </button>
+                ))}
+              </div>
+              <div style={{ flex: 1, overflowY: 'auto' }}>
+                {notifTab === 'inbox' && (
+                  <div>
+                    {demoNotifs.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '80px 0' }}>
+                        <div style={{ fontSize: 40, marginBottom: 12 }}>🔔</div>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: '#94A3B8' }}>No notifications yet</div>
+                        <div style={{ fontSize: 12, color: '#CBD5E1' }}>They'll show up here as events happen</div>
+                      </div>
+                    ) : demoNotifs.map(n => (
+                      <div key={n.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '16px 24px', borderBottom: '1px solid #F1F5F9', background: n.read ? '#fff' : `${accent}05`, cursor: 'pointer' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = '#F8FAFC')} onMouseLeave={e => (e.currentTarget.style.background = n.read ? '#fff' : `${accent}05`)}>
+                        <div style={{ width: 36, height: 36, borderRadius: 10, background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
+                          {NOTIF_ICONS[n.type] || '🔔'}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+                            <span style={{ fontSize: 13, fontWeight: n.read ? 600 : 700, color: '#0F172A' }}>{n.title}</span>
+                            {!n.read && <div style={{ width: 7, height: 7, borderRadius: '50%', background: accent, flexShrink: 0 }} />}
+                          </div>
+                          <div style={{ fontSize: 12, color: '#64748B', marginBottom: 5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.preview}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            {n.emailSent && <span style={{ fontSize: 11, color: '#94A3B8' }}>📧 Email sent</span>}
+                            <span style={{ fontSize: 11, color: '#CBD5E1' }}>{n.time}</span>
+                          </div>
+                        </div>
+                        <button style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid #E2E8F0', background: '#fff', cursor: 'pointer', color: '#64748B', flexShrink: 0 }}>View Email</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {notifTab === 'settings' && (
+                  <div style={{ padding: 24, maxWidth: 560 }}>
+                    {/* Delivery */}
+                    <div style={{ marginBottom: 24 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase' as const, letterSpacing: '.07em', marginBottom: 12 }}>Delivery Address</div>
+                      <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: 20 }}>
+                        <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748B', marginBottom: 8 }}>Notify this email</label>
+                        <input value={notifEmail} onChange={e => setNotifEmail(e.target.value)} type="email" placeholder="you@company.com"
+                          style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, fontFamily: 'inherit', marginBottom: 6 }} />
+                        <div style={{ fontSize: 11, color: '#94A3B8' }}>All triggered notifications will be sent here.</div>
+                      </div>
+                    </div>
+                    {/* Triggers */}
+                    <div style={{ marginBottom: 24 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase' as const, letterSpacing: '.07em', marginBottom: 12 }}>Triggers</div>
+                      <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+                        {([
+                          { key: 'new_conversation', label: 'New conversation', desc: 'Customer opens a brand-new thread' },
+                          { key: 'customer_reply', label: 'Customer reply', desc: 'Customer responds to an open conversation' },
+                          { key: 'ai_replied', label: 'AI auto-reply sent', desc: 'AI generates and sends a response' },
+                          { key: 'resolved', label: 'Conversation resolved', desc: 'A conversation is marked as resolved' },
+                          { key: 'urgent', label: 'Urgent tag added', desc: 'A conversation is tagged as urgent' },
+                        ] as {key: keyof typeof triggers; label: string; desc: string}[]).map((t, i, arr) => (
+                          <div key={t.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: i < arr.length - 1 ? '1px solid #F1F5F9' : 'none' }}>
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>{t.label}</div>
+                              <div style={{ fontSize: 12, color: '#94A3B8' }}>{t.desc}</div>
+                            </div>
+                            <div onClick={() => setTriggers(prev => ({ ...prev, [t.key]: !prev[t.key] }))}
+                              style={{ width: 44, height: 24, borderRadius: 12, background: triggers[t.key] ? accent : '#CBD5E1', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
+                              <div style={{ position: 'absolute', top: 2, left: triggers[t.key] ? 22 : 2, width: 20, height: 20, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 4px rgba(0,0,0,.2)' }} />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    {/* Digest */}
+                    <div style={{ marginBottom: 24 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase' as const, letterSpacing: '.07em', marginBottom: 12 }}>Digest</div>
+                      <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>Daily summary email</div>
+                          <div style={{ fontSize: 12, color: '#94A3B8' }}>Receive a daily digest at 9am</div>
+                        </div>
+                        <div onClick={() => setTriggers(prev => ({ ...prev, digest: !prev.digest }))}
+                          style={{ width: 44, height: 24, borderRadius: 12, background: triggers.digest ? accent : '#CBD5E1', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
+                          <div style={{ position: 'absolute', top: 2, left: triggers.digest ? 22 : 2, width: 20, height: 20, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 4px rgba(0,0,0,.2)' }} />
+                        </div>
+                      </div>
+                    </div>
+                    <button style={{ padding: '10px 24px', borderRadius: 8, border: 'none', background: accent, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Save Preferences</button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        })()}
 
-        {activeNav === 'visitors' && (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#F8FAFC' }}>
-            <div style={{ background: '#fff', borderBottom: '1px solid #E2E8F0', padding: '14px 24px', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ flex: 1 }}>
+        {activeNav === 'visitors' && (() => {
+          const demoRecent = [
+            { name: 'Priya Sharma', page: '/pricing', location: 'Mumbai, IN', time: '2m ago', sessions: 3 },
+            { name: 'Marcus Chen', page: '/checkout', location: 'San Francisco, US', time: '8m ago', sessions: 1 },
+            { name: 'Anonymous', page: '/blog/setup-guide', location: 'London, UK', time: '15m ago', sessions: 1 },
+          ]
+          return (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#F8FAFC' }}>
+              <div style={{ background: '#fff', borderBottom: '1px solid #E2E8F0', padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ fontSize: 16, fontWeight: 800, color: '#0F172A' }}>Live Visitors</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 20, background: '#DCFCE7', color: '#16A34A', fontSize: 12, fontWeight: 700 }}>
+                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#16A34A', animation: 'glow-pulse 1.5s ease-in-out infinite' }} />
+                  Live
+                </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 20, background: '#DCFCE7', color: '#16A34A', fontSize: 12, fontWeight: 700 }}>
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#16A34A', animation: 'glow-pulse 1.5s ease-in-out infinite' }} />
-                Live
+              {/* Tabs */}
+              <div style={{ background: '#fff', borderBottom: '1px solid #E2E8F0', display: 'flex' }}>
+                {([{ id: 'visitors', label: 'On Site', count: 0 }, { id: 'recent', label: 'Recent' }, { id: 'settings', label: 'Settings' }] as any[]).map(tab => (
+                  <button key={tab.id} onClick={() => setVpTab(tab.id)}
+                    style={{ padding: '10px 20px', border: 'none', background: 'transparent', fontSize: 13, fontWeight: 700, cursor: 'pointer', color: vpTab === tab.id ? accent : '#64748B', borderBottom: vpTab === tab.id ? `2px solid ${accent}` : '2px solid transparent', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {tab.label}
+                    {tab.id === 'visitors' && <span style={{ fontSize: 10, fontWeight: 800, background: accent, color: '#fff', padding: '1px 6px', borderRadius: 10 }}>0</span>}
+                  </button>
+                ))}
+              </div>
+              <div style={{ flex: 1, overflowY: 'auto' }}>
+                {vpTab === 'visitors' && (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, height: '100%' }}>
+                    <div style={{ fontSize: 72, fontWeight: 800, color: accent }}>0</div>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: '#94A3B8' }}>visitors on your site right now</div>
+                    <div style={{ fontSize: 13, color: '#CBD5E1' }}>Visitors appear here when your chat widget is installed</div>
+                    <button onClick={() => setActiveNav('widget')} style={{ padding: '9px 20px', borderRadius: 8, border: 'none', background: accent, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Set up Widget</button>
+                  </div>
+                )}
+                {vpTab === 'recent' && (
+                  <div style={{ padding: 24 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginBottom: 16 }}>Recent Visitors</div>
+                    {demoRecent.map((v, i) => (
+                      <div key={i} style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: '14px 18px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 14 }}>
+                        <div style={{ width: 40, height: 40, borderRadius: '50%', background: avatarColor(v.name), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#fff', flexShrink: 0 }}>{initials(v.name)}</div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginBottom: 2 }}>{v.name}</div>
+                          <div style={{ fontSize: 12, color: '#64748B' }}>{v.page} · {v.location}</div>
+                        </div>
+                        <div style={{ textAlign: 'right' as const, flexShrink: 0 }}>
+                          <div style={{ fontSize: 12, color: '#94A3B8', marginBottom: 4 }}>{v.time}</div>
+                          <div style={{ fontSize: 11, color: '#CBD5E1' }}>{v.sessions} session{v.sessions > 1 ? 's' : ''}</div>
+                        </div>
+                        <button style={{ fontSize: 12, padding: '5px 12px', borderRadius: 7, border: `1.5px solid ${accent}`, background: `${accent}10`, color: accent, cursor: 'pointer', fontWeight: 600, flexShrink: 0 }}>Chat</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {vpTab === 'settings' && (
+                  <div style={{ padding: 24, maxWidth: 500 }}>
+                    <div style={{ marginBottom: 20 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase' as const, letterSpacing: '.07em', marginBottom: 12 }}>Visitor Alerts</div>
+                      <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+                        {([
+                          { key: 'arrival', label: 'New visitor arrival', desc: 'Toast + sound when someone lands' },
+                          { key: 'returning', label: 'Returning visitor', desc: 'Alert when a known contact returns' },
+                          { key: 'checkout', label: 'Checkout page visit', desc: 'High-intent page alert' },
+                          { key: 'long', label: 'Long session (5+ min)', desc: 'Engaged visitor alert' },
+                        ] as {key: keyof typeof vpAlerts; label: string; desc: string}[]).map((t, i, arr) => (
+                          <div key={t.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 18px', borderBottom: i < arr.length - 1 ? '1px solid #F1F5F9' : 'none' }}>
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>{t.label}</div>
+                              <div style={{ fontSize: 12, color: '#94A3B8' }}>{t.desc}</div>
+                            </div>
+                            <div onClick={() => setVpAlerts(prev => ({ ...prev, [t.key]: !prev[t.key] }))}
+                              style={{ width: 44, height: 24, borderRadius: 12, background: vpAlerts[t.key] ? accent : '#CBD5E1', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
+                              <div style={{ position: 'absolute', top: 2, left: vpAlerts[t.key] ? 22 : 2, width: 20, height: 20, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 4px rgba(0,0,0,.2)' }} />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase' as const, letterSpacing: '.07em', marginBottom: 12 }}>Proactive Chat</div>
+                      <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: '13px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>Auto-suggest message</div>
+                          <div style={{ fontSize: 12, color: '#94A3B8' }}>AI drafts a greeting based on page</div>
+                        </div>
+                        <div onClick={() => setVpAlerts(prev => ({ ...prev, autoSuggest: !prev.autoSuggest }))}
+                          style={{ width: 44, height: 24, borderRadius: 12, background: vpAlerts.autoSuggest ? accent : '#CBD5E1', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
+                          <div style={{ position: 'absolute', top: 2, left: vpAlerts.autoSuggest ? 22 : 2, width: 20, height: 20, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 4px rgba(0,0,0,.2)' }} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
-              <div style={{ fontSize: 64, fontWeight: 800, color: accent }}>0</div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: '#94A3B8' }}>visitors on your site right now</div>
-              <button onClick={() => setActiveNav('widget')} style={{ padding: '9px 20px', borderRadius: 8, border: 'none', background: accent, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Set up Widget</button>
-            </div>
-          </div>
-        )}
+          )
+        })()}
 
         {activeNav === 'admin' && (
           <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
