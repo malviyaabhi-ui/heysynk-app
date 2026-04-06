@@ -924,139 +924,172 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
       </div>
 
       {/* STICKY WIDGET MANAGER MODAL */}
-      {stickyOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: '#fff', borderRadius: 16, width: 720, maxHeight: '80vh', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,.18)' }}>
-            {/* Modal header */}
-            <div style={{ padding: '18px 24px', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: 10 }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={accent} strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg>
-              <span style={{ fontSize: 16, fontWeight: 800, color: '#0F172A' }}>Sticky Widget Manager</span>
-              <div style={{ flex: 1 }} />
-              <button onClick={() => setStickyOpen(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94A3B8', fontSize: 20, lineHeight: 1, padding: 4 }}>×</button>
-            </div>
-            {/* Modal body */}
-            <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-              {/* Widget list */}
-              <div style={{ width: 240, borderRight: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
-                <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9' }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: '#64748B' }}>Widgets ({stickyWidgets.length})</span>
-                  <button onClick={() => {
-                    const id = Date.now().toString()
-                    setStickyWidgets(prev => [...prev, { id, name: 'New Widget', position: 'Right', scope: 'All articles', enabled: false, cta: 'Click here', url: '', color: accent }])
-                    setSelectedWidget(id)
-                  }} style={{ padding: '4px 10px', borderRadius: 6, border: 'none', background: accent, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>+ New</button>
-                </div>
-                <div style={{ flex: 1, overflowY: 'auto', padding: 8 }}>
-                  {stickyWidgets.map(w => (
-                    <div key={w.id} onClick={() => setSelectedWidget(w.id)}
-                      style={{ padding: '10px 12px', borderRadius: 8, cursor: 'pointer', marginBottom: 4, background: selectedWidget === w.id ? `${accent}10` : 'transparent', border: selectedWidget === w.id ? `1.5px solid ${accent}30` : '1.5px solid transparent' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: w.enabled ? accent : '#F59E0B', flexShrink: 0 }} />
-                        <span style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', flex: 1 }}>{w.name}</span>
-                        <button onClick={e => { e.stopPropagation(); setStickyWidgets(prev => prev.map(x => x.id === w.id ? { ...x, enabled: !x.enabled } : x)) }}
-                          style={{ fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 10, border: 'none', background: w.enabled ? '#DCFCE7' : '#F1F5F9', color: w.enabled ? '#16A34A' : '#94A3B8', cursor: 'pointer' }}>
-                          {w.enabled ? 'On' : 'Off'}
-                        </button>
-                      </div>
-                      <div style={{ fontSize: 11, color: '#94A3B8', paddingLeft: 16 }}>
-                        {w.position === 'Right' ? '▶' : '◀'} {w.position} · {w.scope}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+      {stickyOpen && (() => {
+        const COLORS = ['#2563EB','#16A34A','#F59E0B','#EF4444','#8B5CF6','#1E293B']
+        const CONTENT_TYPES = ['Text','Image','Links','Mixed']
+        const w = stickyWidgets.find(x => x.id === selectedWidget)
+        return (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+            <div style={{ background: '#fff', borderRadius: 16, width: 680, maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,.2)' }}>
+              {/* Header */}
+              <div style={{ padding: '16px 24px', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={accent} strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg>
+                <span style={{ fontSize: 16, fontWeight: 800, color: '#0F172A' }}>Sticky Widget Manager</span>
+                <div style={{ flex: 1 }} />
+                <button onClick={() => { setStickyOpen(false); setSelectedWidget(null) }} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94A3B8', fontSize: 22, lineHeight: 1, padding: 2 }}>×</button>
               </div>
-              {/* Widget editor */}
-              <div style={{ flex: 1, padding: 24, overflowY: 'auto' }}>
-                {selectedWidget ? (() => {
-                  const w = stickyWidgets.find(x => x.id === selectedWidget)
-                  if (!w) return null
-                  return (
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-                        <div style={{ fontSize: 15, fontWeight: 800, color: '#0F172A' }}>Edit Widget</div>
-                        <button onClick={() => { setStickyWidgets(prev => prev.filter(x => x.id !== selectedWidget)); setSelectedWidget(null) }}
-                          style={{ fontSize: 12, color: '#EF4444', background: 'transparent', border: '1px solid #FEE2E2', borderRadius: 6, padding: '4px 10px', cursor: 'pointer' }}>Delete</button>
-                      </div>
-                      <div style={{ marginBottom: 16 }}>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 6 }}>Widget Name</div>
-                        <input value={w.name} onChange={e => setStickyWidgets(prev => prev.map(x => x.id === selectedWidget ? { ...x, name: e.target.value } : x))}
-                          style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, fontFamily: 'inherit' }} />
-                      </div>
-                      <div style={{ marginBottom: 16 }}>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 6 }}>Position</div>
-                        <div style={{ display: 'flex', gap: 8 }}>
-                          {['Left', 'Right'].map(pos => (
-                            <button key={pos} onClick={() => setStickyWidgets(prev => prev.map(x => x.id === selectedWidget ? { ...x, position: pos } : x))}
-                              style={{ flex: 1, padding: '8px', borderRadius: 8, border: w.position === pos ? `2px solid ${accent}` : '2px solid #E2E8F0', background: w.position === pos ? `${accent}10` : '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: w.position === pos ? accent : '#64748B' }}>
-                              {pos === 'Left' ? '◀ Left' : 'Right ▶'}
-                            </button>
-                          ))}
+              {/* Body */}
+              <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+                {/* Left list */}
+                <div style={{ width: 220, borderRight: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+                  <div style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9' }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: '#64748B' }}>Widgets ({stickyWidgets.length})</span>
+                    <button onClick={() => {
+                      const id = Date.now().toString()
+                      setStickyWidgets(prev => [...prev, { id, name: 'New Widget', position: 'Right', scope: 'All Articles', enabled: true, cta: 'Click here', url: '', color: accent, content: '', contentType: 'Text' }])
+                      setSelectedWidget(id)
+                    }} style={{ padding: '4px 12px', borderRadius: 6, border: 'none', background: accent, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>+ New</button>
+                  </div>
+                  <div style={{ flex: 1, overflowY: 'auto', padding: 8 }}>
+                    {stickyWidgets.map(sw => (
+                      <div key={sw.id} onClick={() => setSelectedWidget(sw.id)}
+                        style={{ padding: '10px 12px', borderRadius: 8, cursor: 'pointer', marginBottom: 4, background: selectedWidget === sw.id ? `${accent}10` : 'transparent', border: `1.5px solid ${selectedWidget === sw.id ? accent + '40' : 'transparent'}` }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                          <div style={{ width: 8, height: 8, borderRadius: '50%', background: sw.enabled ? accent : '#F59E0B', flexShrink: 0 }} />
+                          <span style={{ fontSize: 13, fontWeight: 600, color: '#0F172A', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sw.name}</span>
+                          <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 8, background: sw.enabled ? '#DCFCE7' : '#F1F5F9', color: sw.enabled ? '#16A34A' : '#94A3B8' }}>{sw.enabled ? 'On' : 'Off'}</span>
+                        </div>
+                        <div style={{ fontSize: 11, color: '#94A3B8', paddingLeft: 14 }}>
+                          {sw.position === 'Right' ? '▶' : '◀'} {sw.position} · {sw.scope}
                         </div>
                       </div>
-                      <div style={{ marginBottom: 16 }}>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 6 }}>Show On</div>
-                        <select value={w.scope} onChange={e => setStickyWidgets(prev => prev.map(x => x.id === selectedWidget ? { ...x, scope: e.target.value } : x))}
-                          style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, cursor: 'pointer' }}>
-                          <option>All articles</option>
-                          <option>Homepage only</option>
-                          <option>Category pages</option>
-                          <option>Specific articles</option>
-                        </select>
+                    ))}
+                  </div>
+                </div>
+                {/* Right editor */}
+                <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
+                  {w ? (
+                    <div>
+                      {/* Widget Title */}
+                      <div style={{ marginBottom: 18 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 8 }}>Widget Title</div>
+                        <input value={w.name} onChange={e => setStickyWidgets(prev => prev.map(x => x.id === w.id ? { ...x, name: e.target.value } : x))}
+                          style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 14, fontFamily: 'inherit', color: '#0F172A' }} />
                       </div>
-                      <div style={{ marginBottom: 16 }}>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 6 }}>CTA Button Text</div>
-                        <input value={w.cta} onChange={e => setStickyWidgets(prev => prev.map(x => x.id === selectedWidget ? { ...x, cta: e.target.value } : x))}
-                          style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, fontFamily: 'inherit' }} />
+                      {/* Position + Colour */}
+                      <div style={{ display: 'flex', gap: 24, marginBottom: 18 }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 8 }}>Position</div>
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            {['Left','Right'].map(pos => (
+                              <button key={pos} onClick={() => setStickyWidgets(prev => prev.map(x => x.id === w.id ? { ...x, position: pos } : x))}
+                                style={{ flex: 1, padding: '8px', borderRadius: 8, border: w.position === pos ? `2px solid ${accent}` : '2px solid #E2E8F0', background: w.position === pos ? `${accent}10` : '#F8FAFC', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: w.position === pos ? accent : '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                                {pos === 'Left' ? <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 12H5M5 12l7-7M5 12l7 7" /></svg> Left</> : <>Right <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M14 5l7 7-7 7" /></svg></>}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 8 }}>Colour</div>
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            {COLORS.map(c => (
+                              <button key={c} onClick={() => setStickyWidgets(prev => prev.map(x => x.id === w.id ? { ...x, color: c } : x))}
+                                style={{ width: 26, height: 26, borderRadius: '50%', background: c, border: w.color === c ? '3px solid #0F172A' : '3px solid transparent', cursor: 'pointer', padding: 0 }} />
+                            ))}
+                          </div>
+                        </div>
                       </div>
-                      <div style={{ marginBottom: 20 }}>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 6 }}>Link URL</div>
-                        <input value={w.url} onChange={e => setStickyWidgets(prev => prev.map(x => x.id === selectedWidget ? { ...x, url: e.target.value } : x))}
-                          placeholder="https://..." style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, fontFamily: 'inherit' }} />
+                      {/* Content Type */}
+                      <div style={{ marginBottom: 18 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 8 }}>Content Type</div>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          {CONTENT_TYPES.map(ct => {
+                            const icons: Record<string,string> = { Text: '✏️', Image: '🖼️', Links: '🔗', Mixed: '✨' }
+                            const isActive = (w as any).contentType === ct
+                            return (
+                              <button key={ct} onClick={() => setStickyWidgets(prev => prev.map(x => x.id === w.id ? { ...x, contentType: ct } as any : x))}
+                                style={{ flex: 1, padding: '8px 6px', borderRadius: 8, border: isActive ? `2px solid ${accent}` : '2px solid #E2E8F0', background: isActive ? `${accent}10` : '#F8FAFC', fontSize: 12, fontWeight: 600, cursor: 'pointer', color: isActive ? accent : '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                                <span>{icons[ct]}</span> {ct}
+                              </button>
+                            )
+                          })}
+                        </div>
                       </div>
-                      {/* Preview */}
-                      <div style={{ background: '#F8FAFC', borderRadius: 10, padding: 16, marginBottom: 16 }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', marginBottom: 10 }}>Preview</div>
-                        <div style={{ display: 'flex', justifyContent: w.position === 'Right' ? 'flex-end' : 'flex-start' }}>
-                          <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 10, padding: '10px 14px', boxShadow: '0 4px 12px rgba(0,0,0,.08)', display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <div style={{ width: 32, height: 32, borderRadius: 8, background: `${accent}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={accent} strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      {/* Text Content */}
+                      <div style={{ marginBottom: 18 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 8 }}>Text Content</div>
+                        <textarea value={(w as any).content || ''} onChange={e => setStickyWidgets(prev => prev.map(x => x.id === w.id ? { ...x, content: e.target.value } as any : x))}
+                          placeholder="Enter your text, supports line breaks..."
+                          rows={4} style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, resize: 'vertical', fontFamily: 'inherit', color: '#334155' }} />
+                      </div>
+                      {/* Scope */}
+                      <div style={{ marginBottom: 18 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 10 }}>Scope — Show On</div>
+                        {[{ val: 'All Articles', desc: 'Widget appears on every article' }, { val: 'Specific Categories', desc: null }, { val: 'Specific Articles', desc: null }].map(opt => (
+                          <label key={opt.val} onClick={() => setStickyWidgets(prev => prev.map(x => x.id === w.id ? { ...x, scope: opt.val } : x))}
+                            style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 14px', borderRadius: 8, border: `1.5px solid ${w.scope === opt.val ? accent : '#E2E8F0'}`, background: w.scope === opt.val ? `${accent}08` : '#fff', marginBottom: 8, cursor: 'pointer' }}>
+                            <div style={{ width: 16, height: 16, borderRadius: '50%', border: `2px solid ${w.scope === opt.val ? accent : '#CBD5E1'}`, background: w.scope === opt.val ? accent : '#fff', flexShrink: 0, marginTop: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              {w.scope === opt.val && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff' }} />}
                             </div>
                             <div>
-                              <div style={{ fontSize: 12, fontWeight: 700, color: '#0F172A', marginBottom: 2 }}>{w.name}</div>
-                              <div style={{ fontSize: 11, color: accent, fontWeight: 600, cursor: 'pointer' }}>{w.cta} →</div>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>{opt.val}</div>
+                              {opt.desc && <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 2 }}>{opt.desc}</div>}
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                      {/* Widget Active toggle */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderTop: '1px solid #F1F5F9', marginBottom: 18 }}>
+                        <span style={{ fontSize: 14, fontWeight: 600, color: '#0F172A' }}>Widget Active</span>
+                        <div onClick={() => setStickyWidgets(prev => prev.map(x => x.id === w.id ? { ...x, enabled: !x.enabled } : x))}
+                          style={{ width: 44, height: 24, borderRadius: 12, background: w.enabled ? accent : '#CBD5E1', cursor: 'pointer', position: 'relative', transition: 'background 0.2s' }}>
+                          <div style={{ position: 'absolute', top: 2, left: w.enabled ? 22 : 2, width: 20, height: 20, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 4px rgba(0,0,0,.2)' }} />
+                        </div>
+                      </div>
+                      {/* Live Preview */}
+                      <div style={{ marginBottom: 20 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 10 }}>Live Preview</div>
+                        <div style={{ background: '#F8FAFC', borderRadius: 10, padding: 16, border: '1px solid #E2E8F0' }}>
+                          <div style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', marginBottom: 10, textTransform: 'uppercase' }}>
+                            Appears on Article Page ({w.position} Side)
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: w.position === 'Right' ? 'flex-end' : 'flex-start' }}>
+                            <div style={{ background: w.color || accent, borderRadius: 8, padding: '10px 20px', minWidth: 160, textAlign: 'center' }}>
+                              <div style={{ fontSize: 13, fontWeight: 800, color: '#fff', textTransform: 'uppercase', letterSpacing: '.05em' }}>{w.name}</div>
+                              {(w as any).content && <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)', marginTop: 4 }}>{(w as any).content.slice(0, 60)}</div>}
                             </div>
                           </div>
                         </div>
                       </div>
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        <button onClick={() => setStickyWidgets(prev => prev.map(x => x.id === selectedWidget ? { ...x, enabled: !x.enabled } : x))}
-                          style={{ flex: 1, padding: '9px', borderRadius: 8, border: '1.5px solid #E2E8F0', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#334155' }}>
-                          {w.enabled ? 'Disable Widget' : 'Enable Widget'}
-                        </button>
-                        <button onClick={() => setStickyOpen(false)}
-                          style={{ flex: 1, padding: '9px', borderRadius: 8, border: 'none', background: accent, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-                          Save & Close
-                        </button>
+                      {/* Action buttons */}
+                      <div style={{ display: 'flex', gap: 10, borderTop: '1px solid #F1F5F9', paddingTop: 16 }}>
+                        <button onClick={() => { setStickyWidgets(prev => prev.filter(x => x.id !== w.id)); setSelectedWidget(null) }}
+                          style={{ padding: '9px 18px', borderRadius: 8, border: '1.5px solid #EF4444', background: '#fff', color: '#EF4444', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Delete</button>
+                        <div style={{ flex: 1 }} />
+                        <button onClick={() => { setStickyOpen(false); setSelectedWidget(null) }}
+                          style={{ padding: '9px 18px', borderRadius: 8, border: '1.5px solid #E2E8F0', background: '#fff', color: '#64748B', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+                        <button onClick={() => { setStickyOpen(false) }}
+                          style={{ padding: '9px 20px', borderRadius: 8, border: 'none', background: accent, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Save Widget</button>
                       </div>
                     </div>
-                  )
-                })() : (
-                  <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, color: '#94A3B8' }}>
-                    <span style={{ fontSize: 48 }}>📌</span>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: '#CBD5E1' }}>Select a widget to edit</div>
-                    <div style={{ fontSize: 13 }}>or create a new one</div>
-                    <button onClick={() => {
-                      const id = Date.now().toString()
-                      setStickyWidgets(prev => [...prev, { id, name: 'New Widget', position: 'Right', scope: 'All articles', enabled: false, cta: 'Click here', url: '', color: accent }])
-                      setSelectedWidget(id)
-                    }} style={{ marginTop: 8, padding: '9px 20px', borderRadius: 8, border: 'none', background: accent, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Create Widget</button>
-                  </div>
-                )}
+                  ) : (
+                    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, color: '#94A3B8' }}>
+                      <span style={{ fontSize: 48 }}>📌</span>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: '#CBD5E1' }}>Select a widget to edit</div>
+                      <div style={{ fontSize: 13 }}>or create a new one</div>
+                      <button onClick={() => {
+                        const id = Date.now().toString()
+                        setStickyWidgets(prev => [...prev, { id, name: 'New Widget', position: 'Right', scope: 'All Articles', enabled: true, cta: 'Click here', url: '', color: accent, content: '', contentType: 'Text' }])
+                        setSelectedWidget(id)
+                      }} style={{ marginTop: 8, padding: '9px 20px', borderRadius: 8, border: 'none', background: accent, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Create Widget</button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
     </>
   )
 }
