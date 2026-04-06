@@ -137,6 +137,11 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
   ])
   const [campaignModal, setCampaignModal] = useState<any>(null)
   const [campaignRules, setCampaignRules] = useState<any[]>([{ trigger: 'Page URL contains', op: 'contains', value: '' }])
+  const [widgetOpen, setWidgetOpen] = useState(false)
+  const [widgetChatMsg, setWidgetChatMsg] = useState('')
+  const [widgetMessages, setWidgetMessages] = useState<{role:string;text:string}[]>([{ role: 'bot', text: 'Hi there! 👋 Welcome to heySynk Help. Ask me anything or browse articles below.' }])
+  const [widgetTab, setWidgetTab] = useState<'chat'|'articles'>('chat')
+  const [widgetAiLoading, setWidgetAiLoading] = useState(false)
   const [adminPage, setAdminPage] = useState('workspace')
   const [selectedWidget, setSelectedWidget] = useState<string | null>(null)
   const [stickyWidgets, setStickyWidgets] = useState<any[]>([{ id: '1', name: 'Need more help?', position: 'right', scope: 'All Articles', enabled: true, color: 'blue', contentType: 'links', text: '', imageUrl: '', caption: '', links: [{ title: 'Contact Support', url: '#' }, { title: 'Video Tutorials', url: '#' }] }, { id: '2', name: 'Important Notice', position: 'left', scope: 'All Articles', enabled: false, color: 'amber', contentType: 'text', text: 'Our support hours are Mon–Fri, 9am–6pm.', imageUrl: '', caption: '', links: [] }])
@@ -257,7 +262,25 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
     setKbArticles((data || []) as KBArticle[])
   }, [workspace.id, kbActiveCat, kbStatusFilter])
 
-  useEffect(() => { if (activeNav === 'kb') { loadKBCats(); loadKBArticles() } }, [activeNav, loadKBCats, loadKBArticles])
+  useEffect(() => {
+    if (activeNav !== 'kb') return
+    loadKBCats()
+    const seedKB = async () => {
+      await loadKBArticles()
+      const { count } = await supabase.from('kb_articles').select('*', { count: 'exact', head: true }).eq('workspace_id', workspace.id)
+      if ((count || 0) > 0) return
+      const articles = [
+        { workspace_id: workspace.id, title: 'Getting Started with heySynk', slug: 'getting-started', status: 'published', excerpt: 'Set up your workspace in minutes — install the widget, invite agents, and go live.', body: 'Welcome to heySynk! Install the Chat Widget by copying the embed code from Chat Widget in the sidebar. Then invite your team from Admin Panel > Agents. Mira AI comes pre-configured.', author_id: agent.id, category_id: null, tags: ['setup','onboarding'] },
+        { workspace_id: workspace.id, title: 'How to Use Canned Responses', slug: 'canned-responses', status: 'published', excerpt: 'Speed up replies with pre-written templates. Type / in any chat to trigger them.', body: 'Canned responses let your team reply faster. In any conversation, type / followed by a shortcut name — e.g. /greet — and press Enter. Manage templates in Admin Panel > Canned Responses. Use {{customer_name}} as a variable.', author_id: agent.id, category_id: null, tags: ['productivity','shortcuts'] },
+        { workspace_id: workspace.id, title: 'Understanding Mira AI', slug: 'mira-ai', status: 'published', excerpt: 'Learn how Mira AI drafts replies, writes articles, and tracks resolution rate.', body: 'Mira AI helps your team reply faster. Click AI Reply in any open conversation — Mira reads the history and drafts a contextual reply. In the KB editor, use AI Write to generate articles from a title. Track AI resolution rate in Analytics.', author_id: agent.id, category_id: null, tags: ['ai','mira'] },
+        { workspace_id: workspace.id, title: 'Setting Up Email Notifications', slug: 'email-notifications', status: 'published', excerpt: 'Configure which events trigger email alerts and where they are sent.', body: 'Go to Notifications > Settings to enter your alert email. Enable triggers: New conversation, Customer reply, AI auto-reply sent, Conversation resolved, Urgent tag. Enable Daily Digest to get a morning summary.', author_id: agent.id, category_id: null, tags: ['notifications','email'] },
+        { workspace_id: workspace.id, title: 'Routing Rules & Auto-Assignment', slug: 'routing-rules', status: 'draft', excerpt: 'Auto-assign conversations to agents based on priority, channel, or round-robin.', body: 'Go to Admin Panel > Routing Rules and click + New Rule. Available conditions: Priority is Urgent (assign to Support Lead), Channel is Email (assign to Email Team), All conversations (round-robin). Rules are evaluated top-to-bottom.', author_id: agent.id, category_id: null, tags: ['routing','assignment'] },
+      ]
+      for (const a of articles) { await supabase.from('kb_articles').insert(a) }
+      loadKBArticles()
+    }
+    seedKB()
+  }, [activeNav, loadKBCats, loadKBArticles])
 
   async function saveKBArticle(status?: string) {
     if (!kbEditing?.title?.trim()) return
@@ -536,7 +559,7 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2"><circle cx="11" cy="11" r="8" /><path strokeLinecap="round" d="m21 21-4.35-4.35" /></svg>
                 <input placeholder="Search articles..." value={kbSearch} onChange={e => setKbSearch(e.target.value)} style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: 13, color: '#334155', width: '100%' }} />
               </div>
-              <button style={{ padding: '7px 14px', borderRadius: 8, border: '1.5px solid #E2E8F0', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#334155', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <button onClick={() => window.open('https://www.heysynk.app/help-centre', '_blank')} style={{ padding: '7px 14px', borderRadius: 8, border: '1.5px solid #E2E8F0', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#334155', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path strokeLinecap="round" strokeLinejoin="round" d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01" /></svg>
                 Help Centre
               </button>
@@ -1958,6 +1981,103 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
           </div>
         </div>
       )}
+
+      {/* FLOATING HELP CENTRE CHAT WIDGET */}
+      <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 999 }}>
+        {widgetOpen && (
+          <div style={{ width: 380, height: 560, background: '#fff', borderRadius: 16, boxShadow: '0 24px 64px rgba(0,0,0,.18)', display: 'flex', flexDirection: 'column', marginBottom: 16, border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+            {/* Widget header */}
+            <div style={{ background: `linear-gradient(135deg, ${accent}, #7C3AED)`, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, color: '#fff' }}>hs</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>heySynk Help</div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ADE80' }} /> Online · Mira AI
+                </div>
+              </div>
+              <button onClick={() => setWidgetOpen(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', fontSize: 20, padding: 2 }}>×</button>
+            </div>
+            {/* Tabs */}
+            <div style={{ display: 'flex', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', flexShrink: 0 }}>
+              {(['chat','articles'] as const).map(tab => (
+                <button key={tab} onClick={() => setWidgetTab(tab)}
+                  style={{ flex: 1, padding: '10px', border: 'none', background: 'transparent', fontSize: 13, fontWeight: 700, cursor: 'pointer', color: widgetTab === tab ? accent : '#64748B', borderBottom: widgetTab === tab ? `2px solid ${accent}` : '2px solid transparent', textTransform: 'capitalize' }}>
+                  {tab === 'chat' ? '💬 Chat' : '📚 Articles'}
+                </button>
+              ))}
+            </div>
+            {/* Chat tab */}
+            {widgetTab === 'chat' && (
+              <>
+                <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {widgetMessages.map((m, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
+                      {m.role === 'bot' && <div style={{ width: 28, height: 28, borderRadius: '50%', background: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, color: '#fff', flexShrink: 0, marginRight: 8, alignSelf: 'flex-end' }}>M</div>}
+                      <div style={{ maxWidth: '78%', padding: '10px 14px', borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px', background: m.role === 'user' ? accent : '#F1F5F9', color: m.role === 'user' ? '#fff' : '#334155', fontSize: 13, lineHeight: 1.6 }}>{m.text}</div>
+                    </div>
+                  ))}
+                  {widgetAiLoading && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ width: 28, height: 28, borderRadius: '50%', background: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, color: '#fff' }}>M</div>
+                      <div style={{ background: '#F1F5F9', borderRadius: '16px 16px 16px 4px', padding: '10px 14px', display: 'flex', gap: 4 }}>
+                        {[0,1,2].map(i => <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: '#94A3B8', animation: `glow-pulse 1.2s ease-in-out ${i*0.2}s infinite` }} />)}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div style={{ padding: '12px 14px', borderTop: '1px solid #E2E8F0', display: 'flex', gap: 8, flexShrink: 0 }}>
+                  <input value={widgetChatMsg} onChange={e => setWidgetChatMsg(e.target.value)}
+                    onKeyDown={async e => {
+                      if (e.key !== 'Enter' || !widgetChatMsg.trim()) return
+                      const userMsg = widgetChatMsg.trim()
+                      setWidgetMessages(prev => [...prev, { role: 'user', text: userMsg }])
+                      setWidgetChatMsg('')
+                      setWidgetAiLoading(true)
+                      try {
+                        const res = await fetch('/api/ai/reply', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ context: `Help centre customer question: "${userMsg}"`, customer_name: 'Visitor', agent_name: 'Mira AI', workspace_id: workspace.id }) })
+                        const data = await res.json()
+                        setWidgetMessages(prev => [...prev, { role: 'bot', text: data.reply || 'I\'m not sure about that. Would you like to speak with a support agent?' }])
+                      } catch { setWidgetMessages(prev => [...prev, { role: 'bot', text: 'Sorry, I ran into an issue. Please try again.' }]) }
+                      setWidgetAiLoading(false)
+                    }}
+                    placeholder="Ask Mira AI anything…" style={{ flex: 1, padding: '9px 12px', borderRadius: 10, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, fontFamily: 'inherit' }} />
+                  <button onClick={() => setWidgetOpen(false)} style={{ fontSize: 11, padding: '9px 12px', borderRadius: 10, border: 'none', background: `${accent}15`, color: accent, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap' }}>Talk to agent</button>
+                </div>
+              </>
+            )}
+            {/* Articles tab */}
+            {widgetTab === 'articles' && (
+              <div style={{ flex: 1, overflowY: 'auto' }}>
+                <div style={{ padding: '12px 16px', borderBottom: '1px solid #F1F5F9' }}>
+                  <a href="https://www.heysynk.app/help-centre" target="_blank" rel="noreferrer"
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 700, color: accent, textDecoration: 'none' }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                    Open full Help Centre
+                  </a>
+                </div>
+                {kbArticles.filter(a => a.status === 'published').length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '40px 16px', color: '#94A3B8', fontSize: 13 }}>No articles published yet</div>
+                ) : kbArticles.filter(a => a.status === 'published').map(article => (
+                  <div key={article.id} style={{ padding: '14px 16px', borderBottom: '1px solid #F8FAFC', cursor: 'pointer' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = '#F8FAFC')} onMouseLeave={e => (e.currentTarget.style.background = '#fff')}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginBottom: 4 }}>{article.title}</div>
+                    <div style={{ fontSize: 12, color: '#64748B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{article.excerpt}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        {/* Trigger button */}
+        <button onClick={() => setWidgetOpen(v => !v)}
+          style={{ width: 56, height: 56, borderRadius: '50%', border: 'none', background: `linear-gradient(135deg, ${accent}, #7C3AED)`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 24px rgba(0,0,0,.2)', transition: 'transform 0.2s' }}
+          onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.08)')} onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}>
+          {widgetOpen
+            ? <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+            : <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+          }
+        </button>
+      </div>
 
       {/* STICKY WIDGET MANAGER MODAL */}
       {stickyOpen && (() => {
