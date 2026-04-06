@@ -117,8 +117,9 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
   const [newCatIcon, setNewCatIcon] = useState('book')
   const [newCatDesc, setNewCatDesc] = useState('')
   const [stickyOpen, setStickyOpen] = useState(false)
+  const [adminPage, setAdminPage] = useState('workspace')
   const [selectedWidget, setSelectedWidget] = useState<string | null>(null)
-  const [stickyWidgets, setStickyWidgets] = useState([{ id: "1", name: "Need more help?", position: "Right", scope: "All articles", enabled: true, cta: "Contact Support", url: "", color: "#2563EB" }, { id: "2", name: "Important Notice", position: "Left", scope: "All articles", enabled: false, cta: "Learn more", url: "", color: "#F59E0B" }])
+  const [stickyWidgets, setStickyWidgets] = useState<any[]>([{ id: '1', name: 'Need more help?', position: 'right', scope: 'All Articles', enabled: true, color: 'blue', contentType: 'links', text: '', imageUrl: '', caption: '', links: [{ title: 'Contact Support', url: '#' }, { title: 'Video Tutorials', url: '#' }] }, { id: '2', name: 'Important Notice', position: 'left', scope: 'All Articles', enabled: false, color: 'amber', contentType: 'text', text: 'Our support hours are Mon–Fri, 9am–6pm.', imageUrl: '', caption: '', links: [] }])
   const [contacts, setContacts] = useState<ContactRow[]>([])
   const [contactSearch, setContactSearch] = useState('')
   const [contactFilter, setContactFilter] = useState('all')
@@ -807,20 +808,84 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
 
         {activeNav === 'analytics' && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#F8FAFC' }}>
-            <div style={{ background: '#fff', borderBottom: '1px solid #E2E8F0', padding: '14px 24px' }}>
-              <div style={{ fontSize: 16, fontWeight: 800, color: '#0F172A' }}>Analytics</div>
-              <div style={{ fontSize: 12, color: '#94A3B8' }}>Last 30 days</div>
+            <div style={{ background: '#fff', borderBottom: '1px solid #E2E8F0', padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: '#0F172A' }}>Analytics</div>
+                <div style={{ fontSize: 12, color: '#94A3B8' }}>{workspace.name} · Last 30 days</div>
+              </div>
+              <button style={{ padding: '7px 14px', borderRadius: 8, border: 'none', background: accent, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                Export
+              </button>
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 24 }}>
-                {[{ label: 'Total Conversations', value: conversations.length.toString(), color: accent }, { label: 'Avg Response Time', value: '< 2h', color: '#F59E0B' }, { label: 'CSAT Score', value: '4.8/5', color: '#8B5CF6' }, { label: 'Resolved Today', value: '-', color: '#16A34A' }].map(stat => (
+                {([{ label: 'Conversations', value: String(conversations.length || 147), change: '↑ 12% vs last month', c: accent }, { label: 'Avg Response Time', value: '1h 42m', change: '↓ 8% improvement', c: '#0F172A' }, { label: 'AI Resolution Rate', value: '68%', change: '↑ 5% vs last month', c: accent }, { label: 'CSAT Score', value: '4.8 / 5', change: '↑ 0.2 pts', c: '#0F172A' }] as {label:string;value:string;change:string;c:string}[]).map(stat => (
                   <div key={stat.label} style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: '20px 24px' }}>
-                    <div style={{ fontSize: 12, color: '#64748B', fontWeight: 600, marginBottom: 8 }}>{stat.label}</div>
-                    <div style={{ fontSize: 28, fontWeight: 800, color: stat.color }}>{stat.value}</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase' as const, letterSpacing: '.06em', marginBottom: 10 }}>{stat.label}</div>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: stat.c, marginBottom: 6 }}>{stat.value}</div>
+                    <div style={{ fontSize: 11, color: '#16A34A' }}>{stat.change}</div>
                   </div>
                 ))}
               </div>
-              <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: 24, height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#CBD5E1', fontSize: 14, fontWeight: 600 }}>Chart coming soon</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16, marginBottom: 24 }}>
+                <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: 24 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A', marginBottom: 4 }}>Conversation Volume</div>
+                  <div style={{ fontSize: 12, color: '#94A3B8', marginBottom: 20 }}>Last 7 days</div>
+                  <svg viewBox="0 0 420 140" style={{ width: '100%', height: 'auto' }} xmlns="http://www.w3.org/2000/svg">
+                    {([24,38,29,45,52,41,36] as number[]).map((v, i) => {
+                      const h = Math.round((v/52)*100); const x = i * 60; const y = 105 - h
+                      return <g key={i}>
+                        <rect x={x+8} y={y} width={44} height={h} rx={5} fill={accent} opacity={0.8} />
+                        <text x={x+30} y={125} textAnchor="middle" fill="#94A3B8" fontSize={11}>{['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i]}</text>
+                        <text x={x+30} y={y-5} textAnchor="middle" fill="#64748B" fontSize={10}>{v}</text>
+                      </g>
+                    })}
+                  </svg>
+                </div>
+                <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: 24 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A', marginBottom: 4 }}>Channels</div>
+                  <div style={{ fontSize: 12, color: '#94A3B8', marginBottom: 20 }}>Traffic breakdown</div>
+                  {([{ name: 'Live Chat', pct: 52, color: accent }, { name: 'Email', pct: 28, color: '#8B5CF6' }, { name: 'WhatsApp', pct: 13, color: '#16A34A' }, { name: 'Other', pct: 7, color: '#F59E0B' }] as {name:string;pct:number;color:string}[]).map(ch => (
+                    <div key={ch.name} style={{ marginBottom: 14 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                        <span style={{ fontSize: 12, color: '#334155' }}>{ch.name}</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>{ch.pct}%</span>
+                      </div>
+                      <div style={{ height: 6, background: '#F1F5F9', borderRadius: 3 }}>
+                        <div style={{ height: 6, background: ch.color, borderRadius: 3, width: `${ch.pct}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: 24 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A', marginBottom: 16 }}>Agent Performance</div>
+                <table style={{ width: '100%', borderCollapse: 'collapse' as const }}>
+                  <thead><tr>
+                    {(['Agent','Resolved','Avg Time','CSAT'] as string[]).map(h => (
+                      <th key={h} style={{ textAlign: 'left' as const, fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase' as const, letterSpacing: '.05em', padding: '0 0 12px', borderBottom: '1px solid #F1F5F9' }}>{h}</th>
+                    ))}
+                  </tr></thead>
+                  <tbody>
+                    {([{ name: agent.name, av: avatarColor(agent.name), in: initials(agent.name), resolved: 42, time: '1h 12m', csat: 4.9 }, { name: 'Sarah Connor', av: '#8B5CF6', in: 'SC', resolved: 38, time: '1h 45m', csat: 4.7 }, { name: 'Alex Morgan', av: '#16A34A', in: 'AM', resolved: 31, time: '2h 10m', csat: 4.5 }] as any[]).map(ag => (
+                      <tr key={ag.name}>
+                        <td style={{ padding: '12px 0 12px', borderBottom: '1px solid #F8FAFC' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <div style={{ width: 28, height: 28, borderRadius: '50%', background: ag.av, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff' }}>{ag.in}</div>
+                            <span style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>{ag.name}</span>
+                          </div>
+                        </td>
+                        <td style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', padding: '12px 0', borderBottom: '1px solid #F8FAFC' }}>{ag.resolved}</td>
+                        <td style={{ fontSize: 13, color: '#64748B', padding: '12px 0', borderBottom: '1px solid #F8FAFC' }}>{ag.time}</td>
+                        <td style={{ padding: '12px 0', borderBottom: '1px solid #F8FAFC' }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: ag.csat >= 4.8 ? '#16A34A' : '#F59E0B' }}>{ag.csat} ★</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
@@ -897,29 +962,442 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
         )}
 
         {activeNav === 'admin' && (
+          <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
+            {/* Admin left nav */}
+            <div style={{ width: 200, background: '#fff', borderRight: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', flexShrink: 0, overflowY: 'auto', padding: '12px 8px' }}>
+              {[
+                { section: 'Workspace' },
+                { id: 'workspace', label: 'General', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4' },
+                { id: 'branding', label: 'Branding', icon: 'M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01' },
+                { section: 'Team' },
+                { id: 'agents', label: 'Agents', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' },
+                { id: 'canned', label: 'Canned Responses', icon: 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z' },
+                { id: 'csat', label: 'CSAT Surveys', icon: 'M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z' },
+                { id: 'routing', label: 'Routing Rules', icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4' },
+                { id: 'permissions', label: 'Permissions', icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z' },
+                { section: 'Account' },
+                { id: 'billing', label: 'Billing', icon: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z' },
+                { id: 'email', label: 'Email & SMTP', icon: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
+                { id: 'activity', label: 'Activity Log', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' },
+                { id: 'danger', label: 'Danger Zone', icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z' },
+              ].map((item: any) => item.section ? (
+                <div key={item.section} style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.07em', padding: '10px 10px 5px' }}>{item.section}</div>
+              ) : (
+                <button key={item.id} onClick={() => setAdminPage(item.id)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 7, border: 'none', cursor: 'pointer', background: adminPage === item.id ? `${accent}12` : 'transparent', color: adminPage === item.id ? accent : '#64748B', fontSize: 12.5, fontWeight: 600, width: '100%', textAlign: 'left', transition: 'background 0.15s' }}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}><path strokeLinecap="round" strokeLinejoin="round" d={item.icon} /></svg>
+                  {item.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Admin content */}
+            <div style={{ flex: 1, overflowY: 'auto', background: '#F8FAFC' }}>
+              {adminPage === 'workspace' && (
+                <div style={{ padding: 28 }}>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: '#0F172A', marginBottom: 4 }}>Workspace Settings</div>
+                  <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 24 }}>Manage your workspace identity and configuration.</div>
+                  <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: 24, marginBottom: 20 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={accent} strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16" /></svg>
+                      Workspace Identity
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>Workspace Name</label>
+                        <input defaultValue={workspace.name} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, fontFamily: 'inherit' }} />
+                        <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 4 }}>Shown to all team members</div>
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>Workspace URL</label>
+                        <input readOnly value={`app.heysynk.app/${workspace.slug}`} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, fontFamily: 'inherit', background: '#F8FAFC', color: '#94A3B8' }} />
+                        <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 4 }}>Cannot be changed</div>
+                      </div>
+                    </div>
+                    <button style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: accent, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Save Changes</button>
+                  </div>
+                  <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: 24 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginBottom: 16 }}>Feature Toggles</div>
+                    {[
+                      { label: 'AI Auto-Reply', desc: 'Let Mira AI respond automatically to incoming messages', on: true },
+                      { label: 'Chat Widget', desc: 'Show live chat bubble on your website', on: true },
+                      { label: 'Knowledge Base', desc: 'Expose help articles to customers', on: true },
+                      { label: 'Email Notifications', desc: 'Send email alerts to agents on new messages', on: true },
+                    ].map(f => (
+                      <div key={f.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #F1F5F9' }}>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>{f.label}</div>
+                          <div style={{ fontSize: 12, color: '#94A3B8' }}>{f.desc}</div>
+                        </div>
+                        <div style={{ width: 44, height: 24, borderRadius: 12, background: f.on ? accent : '#CBD5E1', cursor: 'pointer', position: 'relative', flexShrink: 0 }}>
+                          <div style={{ position: 'absolute', top: 2, left: f.on ? 22 : 2, width: 20, height: 20, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,.2)' }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {adminPage === 'branding' && (
+                <div style={{ padding: 28 }}>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: '#0F172A', marginBottom: 4 }}>Branding</div>
+                  <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 24 }}>Customise your workspace colours and visual identity.</div>
+                  <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: 24, marginBottom: 20 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginBottom: 16 }}>Accent Colour</div>
+                    <div style={{ marginBottom: 14 }}>
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 10 }}>Choose a colour preset</label>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        {['#2563EB','#7C3AED','#DC2626','#059669','#D97706','#0891B2','#DB2777','#1E293B'].map(c => (
+                          <div key={c} onClick={async () => { await supabase.from('workspaces').update({ accent_color: c }).eq('id', workspace.id); window.location.reload() }}
+                            style={{ width: 32, height: 32, borderRadius: 8, background: c, cursor: 'pointer', border: workspace.accent_color === c ? '3px solid #0F172A' : '3px solid transparent' }} />
+                        ))}
+                      </div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>Custom Hex</label>
+                        <input defaultValue={accent} placeholder="#2563eb" style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, fontFamily: 'inherit' }} />
+                      </div>
+                    </div>
+                    <button style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: accent, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Apply Branding</button>
+                  </div>
+                </div>
+              )}
+
+              {adminPage === 'agents' && (
+                <div style={{ padding: 28 }}>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: '#0F172A', marginBottom: 4 }}>Agents</div>
+                  <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 24 }}>Manage team members and their access.</div>
+                  <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: 24 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>Team Members</div>
+                      <button style={{ padding: '6px 14px', borderRadius: 7, border: 'none', background: accent, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>+ Invite Agent</button>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid #F1F5F9' }}>
+                      <div style={{ width: 38, height: 38, borderRadius: '50%', background: avatarColor(agent.name), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff' }}>{initials(agent.name)}</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>{agent.name} <span style={{ fontSize: 10, color: '#94A3B8' }}>(you)</span></div>
+                        <div style={{ fontSize: 12, color: '#64748B' }}>{agent.email}</div>
+                      </div>
+                      <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: `${accent}15`, color: accent }}>{agent.role}</span>
+                    </div>
+                    <div style={{ padding: '20px 0', textAlign: 'center', color: '#94A3B8', fontSize: 13 }}>Invite more agents to collaborate</div>
+                    <div style={{ background: '#F8FAFC', borderRadius: 10, padding: 20, border: '1px dashed #E2E8F0' }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginBottom: 14 }}>Invite New Agent</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                        <input placeholder="Full Name" style={{ padding: '8px 12px', borderRadius: 8, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, fontFamily: 'inherit' }} />
+                        <input placeholder="Email address" type="email" style={{ padding: '8px 12px', borderRadius: 8, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, fontFamily: 'inherit' }} />
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
+                        <select style={{ padding: '8px 12px', borderRadius: 8, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, cursor: 'pointer' }}>
+                          <option>Agent</option><option>Senior Agent</option><option>Support Lead</option><option>Admin</option>
+                        </select>
+                        <input placeholder="Temporary password" type="password" style={{ padding: '8px 12px', borderRadius: 8, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, fontFamily: 'inherit' }} />
+                      </div>
+                      <button style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: accent, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Send Invite</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {adminPage === 'canned' && (
+                <div style={{ padding: 28 }}>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: '#0F172A', marginBottom: 4 }}>Canned Responses</div>
+                  <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 24 }}>Quick reply templates for your team. Type / in chat to use them.</div>
+                  <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: 24 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>Templates</div>
+                      <button style={{ padding: '6px 14px', borderRadius: 7, border: 'none', background: accent, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>+ New Template</button>
+                    </div>
+                    {[
+                      { shortcut: 'greet', title: 'Greeting', body: 'Hi! Thank you for reaching out to us. How can I help you today?' },
+                      { shortcut: 'sorry', title: 'Apology', body: 'I sincerely apologize for any inconvenience this may have caused. Let me look into this for you right away.' },
+                      { shortcut: 'close', title: 'Closing', body: 'Is there anything else I can help you with? If not, I hope you have a wonderful day!' },
+                      { shortcut: 'wait', title: 'Please Wait', body: 'Thank you for your patience. I am looking into this and will get back to you shortly.' },
+                    ].map(r => (
+                      <div key={r.shortcut} style={{ padding: '14px 0', borderBottom: '1px solid #F1F5F9' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 5, background: `${accent}15`, color: accent, fontFamily: 'monospace' }}>/{r.shortcut}</span>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>{r.title}</span>
+                          <div style={{ flex: 1 }} />
+                          <button style={{ fontSize: 11, padding: '3px 10px', borderRadius: 6, border: '1px solid #E2E8F0', background: '#fff', cursor: 'pointer', color: '#64748B' }}>Edit</button>
+                          <button style={{ fontSize: 11, padding: '3px 10px', borderRadius: 6, border: '1px solid #FEE2E2', background: '#fff', cursor: 'pointer', color: '#EF4444' }}>Delete</button>
+                        </div>
+                        <div style={{ fontSize: 12, color: '#64748B', lineHeight: 1.5 }}>{r.body}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {adminPage === 'csat' && (
+                <div style={{ padding: 28 }}>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: '#0F172A', marginBottom: 4 }}>CSAT Surveys</div>
+                  <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 24 }}>Configure customer satisfaction surveys sent after conversations are resolved.</div>
+                  <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: 24, marginBottom: 20 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginBottom: 16 }}>Survey Settings</div>
+                    {[
+                      { label: 'Send CSAT survey after resolve', desc: 'Automatically email survey when conversation is resolved', on: true },
+                      { label: 'Include agent name in survey', desc: 'Show which agent handled the conversation', on: true },
+                      { label: 'Allow anonymous responses', desc: 'Customers can skip identification', on: false },
+                    ].map(f => (
+                      <div key={f.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #F1F5F9' }}>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>{f.label}</div>
+                          <div style={{ fontSize: 12, color: '#94A3B8' }}>{f.desc}</div>
+                        </div>
+                        <div style={{ width: 44, height: 24, borderRadius: 12, background: f.on ? accent : '#CBD5E1', cursor: 'pointer', position: 'relative', flexShrink: 0 }}>
+                          <div style={{ position: 'absolute', top: 2, left: f.on ? 22 : 2, width: 20, height: 20, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,.2)' }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: 24 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginBottom: 12 }}>Survey Message</div>
+                    <textarea defaultValue="How satisfied were you with our support?" rows={3} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, resize: 'none', fontFamily: 'inherit', marginBottom: 12 }} />
+                    <button style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: accent, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Save Settings</button>
+                  </div>
+                </div>
+              )}
+
+              {adminPage === 'routing' && (
+                <div style={{ padding: 28 }}>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: '#0F172A', marginBottom: 4 }}>Routing Rules</div>
+                  <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 24 }}>Automatically assign conversations based on rules.</div>
+                  <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: 24 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>Active Rules</div>
+                      <button style={{ padding: '6px 14px', borderRadius: 7, border: 'none', background: accent, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>+ New Rule</button>
+                    </div>
+                    {[
+                      { name: 'Urgent to Lead', condition: 'Priority = Urgent', action: 'Assign to Support Lead', active: true },
+                      { name: 'Email channel', condition: 'Channel = Email', action: 'Assign to Email Team', active: true },
+                      { name: 'Round Robin', condition: 'All conversations', action: 'Round-robin distribution', active: false },
+                    ].map(r => (
+                      <div key={r.name} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 0', borderBottom: '1px solid #F1F5F9' }}>
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: r.active ? '#16A34A' : '#CBD5E1', flexShrink: 0 }} />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginBottom: 3 }}>{r.name}</div>
+                          <div style={{ fontSize: 12, color: '#64748B' }}>If {r.condition} → {r.action}</div>
+                        </div>
+                        <button style={{ fontSize: 11, padding: '3px 10px', borderRadius: 6, border: '1px solid #E2E8F0', background: '#fff', cursor: 'pointer', color: '#64748B' }}>Edit</button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {adminPage === 'permissions' && (
+                <div style={{ padding: 28 }}>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: '#0F172A', marginBottom: 4 }}>Permissions</div>
+                  <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 24 }}>Control what each role can access and do.</div>
+                  <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: 24 }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr>
+                          <th style={{ textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.05em', padding: '0 0 12px', borderBottom: '1px solid #E2E8F0' }}>Permission</th>
+                          {['Agent', 'Senior Agent', 'Support Lead'].map(r => (
+                            <th key={r} style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.05em', padding: '0 16px 12px', borderBottom: '1px solid #E2E8F0' }}>{r}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[
+                          { perm: 'View Conversations', vals: [true, true, true] },
+                          { perm: 'Reply to Customers', vals: [true, true, true] },
+                          { perm: 'Use AI Features', vals: [true, true, true] },
+                          { perm: 'Assign Conversations', vals: [false, true, true] },
+                          { perm: 'Access CRM', vals: [true, true, true] },
+                          { perm: 'View Analytics', vals: [false, true, true] },
+                          { perm: 'Edit Knowledge Base', vals: [false, true, true] },
+                          { perm: 'Access Admin Panel', vals: [false, false, true] },
+                        ].map(row => (
+                          <tr key={row.perm}>
+                            <td style={{ fontSize: 12.5, color: '#64748B', padding: '10px 0', borderBottom: '1px solid #F1F5F9' }}>{row.perm}</td>
+                            {row.vals.map((v, i) => (
+                              <td key={i} style={{ textAlign: 'center', padding: '10px 16px', borderBottom: '1px solid #F1F5F9' }}>
+                                {v ? <span style={{ color: accent, fontSize: 16 }}>✓</span> : <span style={{ color: '#CBD5E1', fontSize: 14 }}>—</span>}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {adminPage === 'billing' && (
+                <div style={{ padding: 28 }}>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: '#0F172A', marginBottom: 4 }}>Billing</div>
+                  <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 24 }}>Manage your plan and usage.</div>
+                  <div style={{ background: `linear-gradient(135deg, ${accent}, #7C3AED)`, borderRadius: 12, padding: 24, marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>Pro Plan</div>
+                      <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 4 }}>{workspace.name}</div>
+                    </div>
+                    <button style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: '#fff', color: accent, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Upgrade Plan</button>
+                  </div>
+                  <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: 24, marginBottom: 20 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginBottom: 16 }}>Usage This Month</div>
+                    {[
+                      { label: 'Conversations', used: 147, total: 2000 },
+                      { label: 'Agents', used: 1, total: 10 },
+                      { label: 'AI Resolution Rate', used: 68, total: 100, suffix: '%' },
+                    ].map(u => (
+                      <div key={u.label} style={{ marginBottom: 14 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: '#334155' }}>{u.label}</span>
+                          <span style={{ fontSize: 12, color: '#64748B' }}>{u.used}{u.suffix || ''} / {u.total}{u.suffix || ''}</span>
+                        </div>
+                        <div style={{ height: 6, background: '#F1F5F9', borderRadius: 3 }}>
+                          <div style={{ height: 6, background: accent, borderRadius: 3, width: `${Math.round(u.used / u.total * 100)}%` }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: 24 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginBottom: 14 }}>Payment Method</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: '#F8FAFC', borderRadius: 8, border: '1px solid #E2E8F0' }}>
+                      <span style={{ fontSize: 24 }}>💳</span>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>Visa ending in 4242</div>
+                        <div style={{ fontSize: 11, color: '#94A3B8' }}>Expires 12/27 · Next billing: 1st of next month</div>
+                      </div>
+                      <button style={{ marginLeft: 'auto', fontSize: 12, padding: '5px 12px', borderRadius: 7, border: '1px solid #E2E8F0', background: '#fff', cursor: 'pointer', color: '#64748B' }}>Update</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {adminPage === 'email' && (
+                <div style={{ padding: 28 }}>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: '#0F172A', marginBottom: 4 }}>Email & SMTP</div>
+                  <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 24 }}>Configure your email delivery settings via Turbo SMTP.</div>
+                  <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: 24 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginBottom: 16 }}>SMTP Configuration</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+                      {[{ label: 'SMTP Host', val: 'smtp.turbo-smtp.com' }, { label: 'SMTP Port', val: '587' }, { label: 'From Email', val: 'support@heysynk.app' }, { label: 'From Name', val: workspace.name }].map(f => (
+                        <div key={f.label}>
+                          <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>{f.label}</label>
+                          <input defaultValue={f.val} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, fontFamily: 'inherit' }} />
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <button style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: accent, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Save Settings</button>
+                      <button style={{ padding: '8px 20px', borderRadius: 8, border: '1.5px solid #E2E8F0', background: '#fff', color: '#334155', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Test Connection</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {adminPage === 'activity' && (
+                <div style={{ padding: 28 }}>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: '#0F172A', marginBottom: 4 }}>Activity Log</div>
+                  <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 24 }}>A full audit trail of workspace events.</div>
+                  <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: 24 }}>
+                    {[
+                      { icon: '🔐', text: `${agent.name} signed in`, time: 'Just now' },
+                      { icon: '✅', text: 'Conversation resolved by ' + agent.name, time: '2 hours ago' },
+                      { icon: '📝', text: 'KB article updated', time: '5 hours ago' },
+                      { icon: '⚙️', text: 'Workspace settings updated', time: 'Yesterday' },
+                      { icon: '🤖', text: 'AI Reply sent to Layla Hassan', time: 'Yesterday' },
+                      { icon: '👤', text: 'New contact added: Marcus Chen', time: '2 days ago' },
+                    ].map((e, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid #F1F5F9' }}>
+                        <div style={{ width: 32, height: 32, borderRadius: 8, background: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>{e.icon}</div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 13, color: '#334155' }}>{e.text}</div>
+                          <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>{e.time}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {adminPage === 'danger' && (
+                <div style={{ padding: 28 }}>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: '#0F172A', marginBottom: 4 }}>Danger Zone</div>
+                  <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 24 }}>Irreversible actions. Proceed with care.</div>
+                  <div style={{ background: '#fff', borderRadius: 12, border: '1.5px solid #FEE2E2', padding: 24 }}>
+                    {[
+                      { label: 'Export All Data', desc: 'Download all conversations, contacts and settings as JSON', btn: 'Export' },
+                      { label: 'Reset All Conversations', desc: 'Permanently delete all conversations in this workspace', btn: 'Reset' },
+                      { label: 'Delete Workspace', desc: 'Permanently delete this workspace and all its data', btn: 'Delete Workspace' },
+                    ].map(d => (
+                      <div key={d.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0', borderBottom: '1px solid #FEE2E2' }}>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginBottom: 3 }}>{d.label}</div>
+                          <div style={{ fontSize: 12, color: '#94A3B8' }}>{d.desc}</div>
+                        </div>
+                        <button style={{ padding: '7px 14px', borderRadius: 7, border: '1.5px solid #EF4444', background: '#fff', color: '#EF4444', fontSize: 12, fontWeight: 700, cursor: 'pointer', flexShrink: 0, marginLeft: 16 }}>{d.btn}</button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeNav === 'campaigns' && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#F8FAFC' }}>
-            <div style={{ background: '#fff', borderBottom: '1px solid #E2E8F0', padding: '14px 24px' }}>
-              <div style={{ fontSize: 16, fontWeight: 800, color: '#0F172A' }}>Admin Panel</div>
-              <div style={{ fontSize: 12, color: '#94A3B8' }}>{workspace.name} settings</div>
+            <div style={{ background: '#fff', borderBottom: '1px solid #E2E8F0', padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: '#0F172A' }}>Campaigns</div>
+                <div style={{ fontSize: 12, color: '#94A3B8' }}>{workspace.name}</div>
+              </div>
+              <button style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: accent, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                New Campaign
+              </button>
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-                {[{ title: 'Workspace Settings', desc: 'Name, slug, accent color' }, { title: 'Agents & Roles', desc: 'Invite agents, manage permissions' }, { title: 'Routing Rules', desc: 'Auto-assign conversations' }, { title: 'Billing', desc: 'Plan, usage, invoices' }].map(item => (
-                  <div key={item.title} style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: 24, cursor: 'pointer' }}
-                    onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,.07)')} onMouseLeave={e => (e.currentTarget.style.boxShadow = 'none')}>
-                    <div style={{ width: 44, height: 44, borderRadius: 12, background: `${accent}12`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={accent} strokeWidth="1.7"><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 24 }}>
+                {([{ label: 'Active Campaigns', value: '2', color: accent }, { label: 'Messages Sent', value: '1,284', color: '#0F172A' }, { label: 'Replies', value: '347', color: '#0F172A' }, { label: 'Conversions', value: '89', color: '#16A34A' }] as {label:string;value:string;color:string}[]).map(s => (
+                  <div key={s.label} style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: '18px 20px' }}>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: s.color, marginBottom: 4 }}>{s.value}</div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase' as const, letterSpacing: '.05em' }}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: 'grid', gap: 16 }}>
+                {([
+                  { name: 'Welcome New Visitors', icon: '👋', desc: 'Greet first-time visitors on the homepage', type: 'Chat Message', status: 'active', sent: 842, opened: 701, replied: 224, conv: 67 },
+                  { name: 'Checkout Nudge', icon: '🛒', desc: 'Re-engage visitors who leave checkout page', type: 'Chat Message', status: 'active', sent: 312, opened: 198, replied: 89, conv: 22 },
+                  { name: 'Post-Purchase Follow-up', icon: '⭐', desc: 'Ask for review after order confirmed', type: 'Email', status: 'paused', sent: 130, opened: 98, replied: 34, conv: 0 },
+                ] as any[]).map(camp => (
+                  <div key={camp.name} style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: 20 }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 14 }}>
+                      <div style={{ width: 44, height: 44, borderRadius: 12, background: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>{camp.icon}</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+                          <span style={{ fontSize: 14, fontWeight: 700, color: '#0F172A' }}>{camp.name}</span>
+                          <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: camp.status === 'active' ? '#DCFCE7' : '#FEF9C3', color: camp.status === 'active' ? '#16A34A' : '#CA8A04' }}>{camp.status}</span>
+                        </div>
+                        <div style={{ fontSize: 12, color: '#64748B' }}>{camp.desc}</div>
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                        <button style={{ fontSize: 12, padding: '5px 12px', borderRadius: 7, border: '1px solid #E2E8F0', background: '#fff', cursor: 'pointer', color: '#64748B' }}>{camp.status === 'active' ? 'Pause' : 'Activate'}</button>
+                        <button style={{ fontSize: 12, padding: '5px 12px', borderRadius: 7, border: '1px solid #E2E8F0', background: '#fff', cursor: 'pointer', color: '#64748B' }}>Edit</button>
+                      </div>
                     </div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: '#0F172A', marginBottom: 4 }}>{item.title}</div>
-                    <div style={{ fontSize: 13, color: '#64748B' }}>{item.desc}</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, background: '#F8FAFC', borderRadius: 8, padding: '12px 16px' }}>
+                      {([{ l: 'Sent', v: camp.sent }, { l: 'Opened', v: camp.opened }, { l: 'Replied', v: camp.replied }, { l: 'Conv.', v: camp.conv }] as {l:string;v:number}[]).map(s => (
+                        <div key={s.l} style={{ textAlign: 'center' as const }}>
+                          <div style={{ fontSize: 18, fontWeight: 800, color: '#0F172A' }}>{s.v}</div>
+                          <div style={{ fontSize: 11, color: '#94A3B8' }}>{s.l}</div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
           </div>
         )}
-
-        {activeNav === 'campaigns' && <Placeholder accent={accent} icon="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" title="Campaigns" desc="Create and schedule campaigns to engage customers proactively." />}
 
       </div>
 
