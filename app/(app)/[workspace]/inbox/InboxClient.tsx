@@ -190,25 +190,33 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
     <div style={{ display: 'flex', height: '100vh', background: '#F1F5F9', fontFamily: '"SF Pro Display",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif', overflow: 'hidden' }}>
 
       {/* ── Rail nav ── */}
-      <div style={{ width: 56, background: '#0F172A', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '10px 0', gap: 4, flexShrink: 0 }}>
+      <div style={{ width: 200, background: '#0F172A', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '10px 0', gap: 2, flexShrink: 0 }}>
         {/* Logo */}
-        <div style={{ width: 36, height: 36, borderRadius: 10, background: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: '#fff', marginBottom: 8, cursor: 'pointer' }}>hs</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', marginBottom: 8, width: '100%' }}>
+            <div style={{ width: 32, height: 32, borderRadius: 9, background: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: '#fff', flexShrink: 0 }}>hs</div>
+            <span style={{ fontSize: 15, fontWeight: 800, color: '#fff', fontFamily: 'inherit', letterSpacing: '-0.3px' }}>hey<span style={{ color: accent }}>Synk</span></span>
+          </div>
         {NAV.map(n => (
           <button key={n.id} onClick={() => setActiveNav(n.id)} title={n.label} style={{
-            width: 36, height: 36, borderRadius: 9, border: 'none', cursor: 'pointer',
-            background: activeNav === n.id ? `${accent}33` : 'transparent',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: 'calc(100% - 16px)', height: 38, borderRadius: 9, border: 'none', cursor: 'pointer',
+            background: activeNav === n.id ? `${accent}22` : 'transparent',
+            display: 'flex', alignItems: 'center', gap: 10, padding: '0 12px',
             transition: 'background 0.15s',
           }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={activeNav === n.id ? accent : '#475569'} strokeWidth="1.8">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={activeNav === n.id ? accent : '#475569'} strokeWidth="1.8" style={{ flexShrink: 0 }}>
               <path strokeLinecap="round" strokeLinejoin="round" d={n.icon} />
             </svg>
+            <span style={{ fontSize: 13, fontWeight: 600, color: activeNav === n.id ? '#fff' : '#64748B' }}>{n.label}</span>
           </button>
         ))}
         {/* Spacer + avatar */}
         <div style={{ flex: 1 }} />
-        <button onClick={signOut} title="Sign out" style={{ width: 32, height: 32, borderRadius: '50%', background: avatarColor(agent.name), border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: '#fff', marginBottom: 8 }}>
-          {initials(agent.name)}
+        <button onClick={signOut} title="Sign out" style={{ width: 'calc(100% - 16px)', height: 44, borderRadius: 10, background: '#1E293B', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, padding: '0 12px', marginBottom: 8 }}>
+          <div style={{ width: 28, height: 28, borderRadius: '50%', background: avatarColor(agent.name), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, color: '#fff', flexShrink: 0 }}>{initials(agent.name)}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{agent.name}</div>
+            <div style={{ fontSize: 10, color: '#475569' }}>Sign out</div>
+          </div>
         </button>
       </div>
 
