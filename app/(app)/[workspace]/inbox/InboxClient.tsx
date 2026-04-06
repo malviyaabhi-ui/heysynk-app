@@ -455,7 +455,33 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
         )}
 
         {/* KNOWLEDGE BASE */}
-        {activeNav === 'kb' && (() => {
+        {activeNav === 'kb' && (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+            {/* Persistent KB top header */}
+            <div style={{ background: '#fff', borderBottom: '1px solid #E2E8F0', padding: '14px 24px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 18, fontWeight: 800, color: '#0F172A' }}>Knowledge Base</div>
+                <div style={{ fontSize: 12, color: '#94A3B8' }}>{kbArticles.length} articles · {workspace.name}</div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#F8FAFC', border: '1.5px solid #E2E8F0', borderRadius: 8, padding: '7px 12px', width: 200 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2"><circle cx="11" cy="11" r="8" /><path strokeLinecap="round" d="m21 21-4.35-4.35" /></svg>
+                <input placeholder="Search articles..." value={kbSearch} onChange={e => setKbSearch(e.target.value)} style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: 13, color: '#334155', width: '100%' }} />
+              </div>
+              <button style={{ padding: '7px 14px', borderRadius: 8, border: '1.5px solid #E2E8F0', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#334155', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path strokeLinecap="round" strokeLinejoin="round" d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01" /></svg>
+                Help Centre
+              </button>
+              <button style={{ padding: '7px 14px', borderRadius: 8, border: '1.5px solid #E2E8F0', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#334155', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg>
+                Sticky Widgets
+              </button>
+              <button onClick={() => { setKbEditing({ status: 'draft', category_id: kbActiveCat, tags: [] }); setKbView('edit') }} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: accent, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                New Article
+              </button>
+            </div>
+            {/* KB content area */}
+            {(() => {
           if (kbView === 'edit' && kbEditing !== null) return (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#fff', minWidth: 0 }}>
               <div style={{ padding: '10px 20px', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
@@ -565,18 +591,39 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
                   )}
                   {kbRightTab === 'SEO' && (
                     <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
-                      <div style={{ marginBottom: 14 }}>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 6 }}>SEO Title</div>
+                      <div style={{ marginBottom: 16 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                          <div style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.07em' }}>Meta Title</div>
+                          <span style={{ fontSize: 10, color: '#94A3B8' }}>0 / 60</span>
+                        </div>
                         <input placeholder="Page title for search engines..." style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, fontFamily: 'inherit' }} />
                       </div>
-                      <div style={{ marginBottom: 14 }}>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 6 }}>Meta Description</div>
-                        <textarea placeholder="Brief description..." rows={4} style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, resize: 'none', fontFamily: 'inherit' }} />
+                      <div style={{ marginBottom: 16 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                          <div style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.07em' }}>Meta Description</div>
+                          <span style={{ fontSize: 10, color: '#94A3B8' }}>0 / 160</span>
+                        </div>
+                        <textarea placeholder="Brief summary for search snippets..." rows={4} style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, resize: 'none', fontFamily: 'inherit' }} />
                       </div>
-                      <div>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 6 }}>Slug</div>
-                        <input value={kbEditing.slug || slugify(kbEditing.title || '')} onChange={e => setKbEditing(p => ({ ...(p || {}), slug: e.target.value }))} style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 12, fontFamily: 'monospace', color: '#64748B' }} />
+                      <div style={{ marginBottom: 16 }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 6 }}>Keywords</div>
+                        <input placeholder="refund, return, policy..." style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, fontFamily: 'inherit' }} />
+                        <div style={{ fontSize: 11, color: '#CBD5E1', marginTop: 4 }}>Comma-separated keywords</div>
                       </div>
+                      <div style={{ marginBottom: 16 }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 6 }}>Canonical URL</div>
+                        <input placeholder="https://help.yoursite.com/..." style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, fontFamily: 'inherit' }} />
+                      </div>
+                      <div style={{ marginBottom: 20 }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 6 }}>Index / Follow</div>
+                        <select style={{ width: '100%', padding: '8px 10px', borderRadius: 7, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, color: '#334155', cursor: 'pointer' }}>
+                          <option>Index, Follow (default)</option>
+                          <option>No Index, Follow</option>
+                          <option>Index, No Follow</option>
+                          <option>No Index, No Follow</option>
+                        </select>
+                      </div>
+                      <button style={{ width: '100%', padding: '10px', borderRadius: 8, border: 'none', background: accent, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Save SEO Settings</button>
                     </div>
                   )}
                   {kbRightTab === 'TOC' && (
@@ -625,29 +672,7 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
           )
 
           return (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-              <div style={{ background: '#fff', borderBottom: '1px solid #E2E8F0', padding: '14px 24px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: '#0F172A' }}>Knowledge Base</div>
-                  <div style={{ fontSize: 12, color: '#94A3B8' }}>{kbArticles.length} articles · {workspace.name}</div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#F8FAFC', border: '1.5px solid #E2E8F0', borderRadius: 8, padding: '7px 12px', width: 200 }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2"><circle cx="11" cy="11" r="8" /><path strokeLinecap="round" d="m21 21-4.35-4.35" /></svg>
-                  <input placeholder="Search articles..." value={kbSearch} onChange={e => setKbSearch(e.target.value)} style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: 13, color: '#334155', width: '100%' }} />
-                </div>
-                <button style={{ padding: '7px 14px', borderRadius: 8, border: '1.5px solid #E2E8F0', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#334155', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path strokeLinecap="round" strokeLinejoin="round" d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01" /></svg>
-                  Help Centre
-                </button>
-                <button style={{ padding: '7px 14px', borderRadius: 8, border: '1.5px solid #E2E8F0', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#334155', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg>
-                  Sticky Widgets
-                </button>
-                <button onClick={() => { setKbEditing({ status: 'draft', category_id: kbActiveCat, tags: [] }); setKbView('edit') }} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: accent, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-                  New Article
-                </button>
-              </div>
+            <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
               <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
                 <div style={{ width: 220, background: '#fff', borderRight: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
                   <div style={{ padding: '14px 12px 10px', borderBottom: '1px solid #F1F5F9' }}>
@@ -729,6 +754,8 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
             </div>
           )
         })()}
+          </div>
+        )}
 
         {/* CONTACTS */}
         {activeNav === 'contacts' && (
