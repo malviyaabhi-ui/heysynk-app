@@ -1319,6 +1319,7 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
                 { id: 'csat', label: 'CSAT Surveys', icon: 'M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z' },
                 { id: 'routing', label: 'Routing Rules', icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4' },
                 { id: 'permissions', label: 'Permissions', icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z' },
+                { id: 'roles', label: 'Roles', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z' },
                 { section: 'Account' },
                 { id: 'billing', label: 'Billing', icon: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z' },
                 { id: 'email', label: 'Email & SMTP', icon: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
@@ -1454,20 +1455,24 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
                       <button style={{ padding: '6px 14px', borderRadius: 7, border: 'none', background: accent, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>+ New Template</button>
                     </div>
                     {[
-                      { shortcut: 'greet', title: 'Greeting', body: 'Hi! Thank you for reaching out to us. How can I help you today?' },
-                      { shortcut: 'sorry', title: 'Apology', body: 'I sincerely apologize for any inconvenience this may have caused. Let me look into this for you right away.' },
-                      { shortcut: 'close', title: 'Closing', body: 'Is there anything else I can help you with? If not, I hope you have a wonderful day!' },
-                      { shortcut: 'wait', title: 'Please Wait', body: 'Thank you for your patience. I am looking into this and will get back to you shortly.' },
+                      { shortcut: '/greet', title: 'Greeting', cat: 'General', body: 'Hi {{customer_name}}! 👋 Thank you for reaching out to us. How can I help you today?' },
+                      { shortcut: '/sorry', title: 'Apology', cat: 'General', body: 'I sincerely apologize for any inconvenience this may have caused, {{customer_name}}. Let me look into this for you right away.' },
+                      { shortcut: '/close', title: 'Closing', cat: 'General', body: 'Is there anything else I can help you with, {{customer_name}}? If not, have a wonderful day! 😊' },
+                      { shortcut: '/wait', title: 'Please Wait', cat: 'General', body: 'Thank you for your patience, {{customer_name}}. I am looking into this and will get back to you shortly.' },
+                      { shortcut: '/refund', title: 'Refund Policy', cat: 'Billing', body: 'Our refund policy allows returns within 30 days of purchase. I have initiated the refund process for you — it will appear in 3-5 business days.' },
+                      { shortcut: '/ship', title: 'Shipping Info', cat: 'Shipping', body: 'Your order is on its way! Standard shipping takes 3-7 business days. You can track your order using the link in your confirmation email.' },
+                      { shortcut: '/reset', title: 'Password Reset', cat: 'Technical', body: 'To reset your password, click "Forgot Password" on the login page and enter your email. You will receive a reset link within 2 minutes.' },
                     ].map(r => (
                       <div key={r.shortcut} style={{ padding: '14px 0', borderBottom: '1px solid #F1F5F9' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                          <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 5, background: `${accent}15`, color: accent, fontFamily: 'monospace' }}>/{r.shortcut}</span>
+                          <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 5, background: `${accent}15`, color: accent, fontFamily: 'monospace' }}>{r.shortcut}</span>
                           <span style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>{r.title}</span>
+                          <span style={{ fontSize: 10, fontWeight: 600, padding: '1px 7px', borderRadius: 8, background: '#F1F5F9', color: '#64748B', marginLeft: 4 }}>{r.cat}</span>
                           <div style={{ flex: 1 }} />
                           <button style={{ fontSize: 11, padding: '3px 10px', borderRadius: 6, border: '1px solid #E2E8F0', background: '#fff', cursor: 'pointer', color: '#64748B' }}>Edit</button>
                           <button style={{ fontSize: 11, padding: '3px 10px', borderRadius: 6, border: '1px solid #FEE2E2', background: '#fff', cursor: 'pointer', color: '#EF4444' }}>Delete</button>
                         </div>
-                        <div style={{ fontSize: 12, color: '#64748B', lineHeight: 1.5 }}>{r.body}</div>
+                        <div style={{ fontSize: 12, color: '#64748B', lineHeight: 1.5 }}>{r.body.replace(/{{customer_name}}/g, '[customer name]')}</div>
                       </div>
                     ))}
                   </div>
@@ -1568,6 +1573,47 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
                       </tbody>
                     </table>
                   </div>
+                </div>
+              )}
+
+              {adminPage === 'roles' && (
+                <div style={{ padding: 28 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: '#0F172A' }}>Roles</div>
+                    <button style={{ padding: '7px 14px', borderRadius: 8, border: 'none', background: accent, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>+ New Role</button>
+                  </div>
+                  <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 20 }}>Create custom roles with specific permissions for your team.</div>
+                  <div style={{ background: `${accent}08`, border: `1px solid ${accent}30`, borderRadius: 10, padding: '10px 14px', fontSize: 12.5, color: '#64748B', marginBottom: 20 }}>
+                    💡 Assign roles to agents in the <strong>Agents</strong> tab. Default roles cannot be deleted but can be edited.
+                  </div>
+                  {([
+                    { id: 'role_agent', name: 'Agent', color: '#2563EB', desc: 'Standard support agent — handles customer conversations', isDefault: true, perms: ['View Conversations','Reply to Customers','Resolve Conversations','Use AI Features','Use Canned Responses','View Contacts','View Knowledge Base'] },
+                    { id: 'role_senior', name: 'Senior Agent', color: '#7C3AED', desc: 'Experienced agent with assignment and analytics access', isDefault: true, perms: ['View Conversations','Reply to Customers','Resolve','Assign Conversations','Use AI Features','View Analytics','Edit Knowledge Base','Manage Campaigns'] },
+                    { id: 'role_lead', name: 'Support Lead', color: '#059669', desc: 'Team lead with full access except billing and danger zone', isDefault: true, perms: ['View Conversations','Reply to Customers','Assign Conversations','Use AI Features','View Analytics','Export Reports','Edit Knowledge Base','Manage Agents','Admin Panel'] },
+                    { id: 'role_admin', name: 'Admin', color: '#0F172A', desc: 'Full access to all features and settings', isDefault: true, perms: ['All permissions'] },
+                  ] as any[]).map(role => (
+                    <div key={role.id} style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: 20, marginBottom: 12 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                        <div style={{ width: 38, height: 38, borderRadius: 10, background: role.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, color: '#fff', flexShrink: 0 }}>{role.name[0]}</div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A', display: 'flex', alignItems: 'center', gap: 8 }}>
+                            {role.name}
+                            {role.isDefault && <span style={{ fontSize: 10, background: '#F1F5F9', color: '#94A3B8', padding: '1px 7px', borderRadius: 10, border: '1px solid #E2E8F0' }}>Default</span>}
+                          </div>
+                          <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 2 }}>{role.desc}</div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: `${accent}12`, color: accent, border: `1px solid ${accent}30` }}>{role.perms.length} permissions</span>
+                          <button style={{ fontSize: 11.5, padding: '5px 12px', borderRadius: 7, border: '1px solid #E2E8F0', background: '#fff', cursor: 'pointer', color: '#334155' }}>Edit</button>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                        {role.perms.map((p: string) => (
+                          <span key={p} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 10, background: '#F8FAFC', color: '#64748B', border: '1px solid #E2E8F0' }}>{p}</span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
 
@@ -1700,7 +1746,7 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 24 }}>
-                {([{ label: 'Active Campaigns', value: '2', color: accent }, { label: 'Messages Sent', value: '1,284', color: '#0F172A' }, { label: 'Replies', value: '347', color: '#0F172A' }, { label: 'Conversions', value: '89', color: '#16A34A' }] as {label:string;value:string;color:string}[]).map(s => (
+                {([{ label: 'Active Campaigns', value: '3', color: accent }, { label: 'Messages Sent', value: '519', color: '#0F172A' }, { label: 'Replies', value: '146', color: '#0F172A' }, { label: 'Conversions', value: '66', color: '#16A34A' }] as {label:string;value:string;color:string}[]).map(s => (
                   <div key={s.label} style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: '18px 20px' }}>
                     <div style={{ fontSize: 22, fontWeight: 800, color: s.color, marginBottom: 4 }}>{s.value}</div>
                     <div style={{ fontSize: 11, fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase' as const, letterSpacing: '.05em' }}>{s.label}</div>
@@ -1709,9 +1755,11 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
               </div>
               <div style={{ display: 'grid', gap: 16 }}>
                 {([
-                  { name: 'Welcome New Visitors', icon: '👋', desc: 'Greet first-time visitors on the homepage', type: 'Chat Message', status: 'active', sent: 842, opened: 701, replied: 224, conv: 67 },
-                  { name: 'Checkout Nudge', icon: '🛒', desc: 'Re-engage visitors who leave checkout page', type: 'Chat Message', status: 'active', sent: 312, opened: 198, replied: 89, conv: 22 },
-                  { name: 'Post-Purchase Follow-up', icon: '⭐', desc: 'Ask for review after order confirmed', type: 'Email', status: 'paused', sent: 130, opened: 98, replied: 34, conv: 0 },
+                  { id:'cm1', name: 'Pricing Page Nudge', icon: '💰', desc: 'Greet visitors who spend 30s on pricing', type: 'Chat', status: 'active', sent: 142, opened: 89, replied: 34, conv: 12, rules: 'Page URL contains /pricing + Time ≥ 30s' },
+                  { id:'cm2', name: 'Cart Abandonment', icon: '🛒', desc: 'Re-engage visitors who viewed the cart', type: 'Chat', status: 'active', sent: 87, opened: 61, replied: 28, conv: 19, rules: 'Page URL contains /cart + Time ≥ 60s' },
+                  { id:'cm3', name: 'Returning Customer Welcome', icon: '🔄', desc: 'Welcome back known contacts', type: 'Chat', status: 'active', sent: 234, opened: 198, replied: 76, conv: 31, rules: 'Is returning visitor' },
+                  { id:'cm4', name: 'Exit Intent Offer', icon: '🚪', desc: 'Last-chance banner before visitor leaves', type: 'Banner', status: 'paused', sent: 56, opened: 40, replied: 8, conv: 4, rules: 'Page URL contains /' },
+                  { id:'cm5', name: 'New Feature Announcement', icon: '✨', desc: 'Tell users about new Magic Browse feature', type: 'Email', status: 'draft', sent: 0, opened: 0, replied: 0, conv: 0, rules: 'Visit count ≥ 2' },
                 ] as any[]).map(camp => (
                   <div key={camp.name} style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: 20 }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 14 }}>
@@ -1721,7 +1769,8 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
                           <span style={{ fontSize: 14, fontWeight: 700, color: '#0F172A' }}>{camp.name}</span>
                           <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: camp.status === 'active' ? '#DCFCE7' : '#FEF9C3', color: camp.status === 'active' ? '#16A34A' : '#CA8A04' }}>{camp.status}</span>
                         </div>
-                        <div style={{ fontSize: 12, color: '#64748B' }}>{camp.desc}</div>
+                        <div style={{ fontSize: 12, color: '#64748B', marginBottom: 4 }}>{camp.desc}</div>
+                        <div style={{ fontSize: 11, color: '#94A3B8', background: '#F8FAFC', padding: '3px 8px', borderRadius: 5, display: 'inline-block' }}>🎯 {camp.rules}</div>
                       </div>
                       <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                         <button style={{ fontSize: 12, padding: '5px 12px', borderRadius: 7, border: '1px solid #E2E8F0', background: '#fff', cursor: 'pointer', color: '#64748B' }}>{camp.status === 'active' ? 'Pause' : 'Activate'}</button>
