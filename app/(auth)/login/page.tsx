@@ -1,112 +1,85 @@
 'use client'
+export const dynamic = 'force-dynamic'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import Link from 'next/link'
 
 export default function LoginPage() {
   const router = useRouter()
+  const supabase = createClient()
+
+  const [slug, setSlug] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [resetMode, setResetMode] = useState(false)
-  const [resetSent, setResetSent] = useState(false)
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
-    setLoading(true)
     setError('')
-    const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) {
-      setError('Invalid email or password')
+    setLoading(true)
+    try {
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password })
+      if (authError) throw new Error('Invalid email or password')
+      const { data: agent } = await supabase
+        .from('agents')
+        .select('id, workspaces(slug)')
+        .eq('user_id', authData.user.id)
+        .single()
+      if (!agent) throw new Error('Agent not found')
+      const workspaceSlug = (agent.workspaces as any)?.slug
+      if (workspaceSlug !== slug.toLowerCase().trim()) throw new Error('Workspace not found. Check your workspace URL.')
+      router.push(`/${workspaceSlug}/inbox`)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
       setLoading(false)
-      return
     }
-    // Get workspace slug
-    const { data: agent } = await supabase
-      .from('agents')
-      .select('workspaces(slug)')
-      .eq('email', email)
-      .single()
-    const slug = (agent?.workspaces as any)?.slug
-    router.push(slug ? `/${slug}/inbox` : '/')
   }
 
-  async function handleReset(e: React.FormEvent) {
-    e.preventDefault()
-    setLoading(true)
-    await fetch('/api/email/reset-password', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    })
-    setResetSent(true)
-    setLoading(false)
+  const inp: React.CSSProperties = {
+    width: '100%', padding: '12px 14px', boxSizing: 'border-box',
+    background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)',
+    borderRadius: 10, outline: 'none', color: '#fff', fontSize: 14,
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg,#0F172A,#1E1B4B)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
-      <div style={{ width: '100%', maxWidth: 420 }}>
-        {/* Logo */}
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg,#0F172A 0%,#1E1B4B 50%,#0F172A 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif' }}>
+      <div style={{ position: 'fixed', inset: 0, backgroundImage: 'linear-gradient(rgba(255,255,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.03) 1px,transparent 1px)', backgroundSize: '48px 48px', pointerEvents: 'none' }} />
+      <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 420 }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 44, height: 44, background: 'linear-gradient(135deg,#2563EB,#7C3AED)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 800, color: '#fff' }}>hs</div>
-            <span style={{ fontSize: 22, fontWeight: 800, color: '#fff', letterSpacing: '-0.03em' }}>heySynk</span>
-          </div>
+          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 52, height: 52, borderRadius: 14, background: 'linear-gradient(135deg,#2563EB,#7C3AED)', fontSize: 18, fontWeight: 800, color: '#fff', marginBottom: 12 }}>hs</div>
+          <div style={{ color: '#fff', fontSize: 22, fontWeight: 800 }}>heySynk</div>
+          <div style={{ color: '#94A3B8', fontSize: 14, marginTop: 4 }}>Sign in to your workspace</div>
         </div>
-
-        <div style={{ background: '#fff', borderRadius: 20, padding: 40, boxShadow: '0 24px 64px rgba(0,0,0,0.3)' }}>
-          {resetSent ? (
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 40, marginBottom: 16 }}>📬</div>
-              <h2 style={{ fontSize: 20, fontWeight: 700, color: '#0F172A', margin: '0 0 12px' }}>Check your email</h2>
-              <p style={{ fontSize: 14, color: '#64748B', lineHeight: 1.6 }}>We sent a password reset link to <strong>{email}</strong>. It expires in 1 hour.</p>
-              <button onClick={() => { setResetMode(false); setResetSent(false) }} style={{ marginTop: 24, fontSize: 14, color: '#2563EB', background: 'none', border: 'none', cursor: 'pointer' }}>← Back to login</button>
+        <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20, padding: 32, backdropFilter: 'blur(20px)' }}>
+          <form onSubmit={handleLogin}>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#CBD5E1', marginBottom: 6 }}>Workspace URL</label>
+              <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, overflow: 'hidden' }}>
+                <span style={{ padding: '12px 14px', fontSize: 13, color: '#64748B', whiteSpace: 'nowrap', borderRight: '1px solid rgba(255,255,255,0.08)' }}>app.heysynk.app/</span>
+                <input type="text" placeholder="your-workspace" value={slug} onChange={e => setSlug(e.target.value)} required style={{ flex: 1, padding: '12px 14px', background: 'transparent', border: 'none', outline: 'none', color: '#fff', fontSize: 14 }} />
+              </div>
             </div>
-          ) : resetMode ? (
-            <>
-              <h2 style={{ fontSize: 22, fontWeight: 800, color: '#0F172A', margin: '0 0 8px' }}>Reset password</h2>
-              <p style={{ fontSize: 14, color: '#64748B', margin: '0 0 28px' }}>Enter your email and we'll send a reset link.</p>
-              <form onSubmit={handleReset}>
-                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Email</label>
-                <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="you@company.com"
-                  style={{ width: '100%', padding: '11px 14px', borderRadius: 10, border: '1.5px solid #E2E8F0', fontSize: 14, boxSizing: 'border-box', outline: 'none', marginBottom: 20 }} />
-                <button type="submit" disabled={loading}
-                  style={{ width: '100%', padding: '13px', background: 'linear-gradient(135deg,#2563EB,#7C3AED)', color: '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
-                  {loading ? 'Sending…' : 'Send reset link'}
-                </button>
-              </form>
-              <button onClick={() => setResetMode(false)} style={{ marginTop: 16, fontSize: 14, color: '#2563EB', background: 'none', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'center' }}>← Back to login</button>
-            </>
-          ) : (
-            <>
-              <h2 style={{ fontSize: 22, fontWeight: 800, color: '#0F172A', margin: '0 0 8px' }}>Sign in</h2>
-              <p style={{ fontSize: 14, color: '#64748B', margin: '0 0 28px' }}>Welcome back to heySynk.</p>
-              {error && (
-                <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#991B1B', marginBottom: 20 }}>{error}</div>
-              )}
-              <form onSubmit={handleLogin}>
-                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Email</label>
-                <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="you@company.com"
-                  style={{ width: '100%', padding: '11px 14px', borderRadius: 10, border: '1.5px solid #E2E8F0', fontSize: 14, boxSizing: 'border-box', outline: 'none', marginBottom: 16 }} />
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <label style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>Password</label>
-                  <button type="button" onClick={() => setResetMode(true)} style={{ fontSize: 13, color: '#2563EB', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Forgot password?</button>
-                </div>
-                <input type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••"
-                  style={{ width: '100%', padding: '11px 14px', borderRadius: 10, border: '1.5px solid #E2E8F0', fontSize: 14, boxSizing: 'border-box', outline: 'none', marginBottom: 24 }} />
-                <button type="submit" disabled={loading}
-                  style={{ width: '100%', padding: '13px', background: 'linear-gradient(135deg,#2563EB,#7C3AED)', color: '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
-                  {loading ? 'Signing in…' : 'Sign in →'}
-                </button>
-              </form>
-            </>
-          )}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#CBD5E1', marginBottom: 6 }}>Email address</label>
+              <input type="email" placeholder="you@company.com" value={email} onChange={e => setEmail(e.target.value)} required style={inp} />
+            </div>
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <label style={{ fontSize: 13, fontWeight: 600, color: '#CBD5E1' }}>Password</label>
+                <a href="/forgot-password" style={{ fontSize: 12, color: '#60A5FA', textDecoration: 'none' }}>Forgot password?</a>
+              </div>
+              <input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required style={inp} />
+            </div>
+            {error && <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, padding: '10px 14px', marginBottom: 16, color: '#FCA5A5', fontSize: 13 }}>{error}</div>}
+            <button type="submit" disabled={loading} style={{ width: '100%', padding: 13, borderRadius: 10, border: 'none', background: loading ? 'rgba(37,99,235,0.5)' : 'linear-gradient(135deg,#2563EB,#7C3AED)', color: '#fff', fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer' }}>
+              {loading ? 'Signing in…' : 'Sign in →'}
+            </button>
+          </form>
         </div>
-        <p style={{ textAlign: 'center', marginTop: 20, fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>
-          © 2026 heySynk · <a href="https://heysynk.app" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none' }}>heysynk.app</a>
+        <p style={{ textAlign: 'center', marginTop: 20, fontSize: 13, color: '#475569' }}>
+          Need an account? <a href="https://heysynk.app" style={{ color: '#60A5FA', textDecoration: 'none' }}>Start free on heysynk.app</a>
         </p>
       </div>
     </div>
