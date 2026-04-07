@@ -11,6 +11,21 @@ export default function ResetPasswordPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
+  const [ready, setReady] = useState(false)
+
+  useEffect(() => {
+    // Supabase puts the tokens in the URL hash — we need to exchange them
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setReady(true)
+      }
+    })
+    // Also check if already has session (user clicked link)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) setReady(true)
+    })
+    return () => subscription.unsubscribe()
+  }, [])
 
   async function handleReset() {
     if (!password.trim()) { setError('Enter a new password'); return }
@@ -40,7 +55,6 @@ export default function ResetPasswordPage() {
       `}</style>
 
       <div style={{ width: '100%', maxWidth: 420, animation: 'fadeUp 0.5s ease' }}>
-        {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <div style={{ width: 56, height: 56, borderRadius: 16, background: 'linear-gradient(135deg,#2563EB,#7C3AED)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" /></svg>
@@ -54,6 +68,10 @@ export default function ResetPasswordPage() {
             <div style={{ fontSize: 32, marginBottom: 8 }}>✅</div>
             <div style={{ fontSize: 15, fontWeight: 700, color: '#16A34A' }}>Password updated!</div>
             <div style={{ fontSize: 13, color: '#64748B', marginTop: 4 }}>Redirecting to login...</div>
+          </div>
+        ) : !ready ? (
+          <div style={{ textAlign: 'center', padding: 24, color: '#94A3B8', fontSize: 14 }}>
+            Verifying reset link...
           </div>
         ) : (
           <div style={{ background: '#fff', borderRadius: 16, padding: 32, boxShadow: '0 4px 24px rgba(0,0,0,0.06)', border: '1px solid #E2E8F0' }}>
