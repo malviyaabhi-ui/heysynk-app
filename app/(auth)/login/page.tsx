@@ -46,7 +46,7 @@ export default function LoginPage() {
         if (e) { setError(e.message); setLoading(false); return }
         setStep('otp')
       } else {
-        const { error: e } = await supabase.auth.signInWithOtp({ email })
+        const { error: e } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: `https://app.heysynk.app/${workspace}/inbox` } })
         if (e) { setError(e.message); setLoading(false); return }
         setStep('otp')
       }
