@@ -14,17 +14,33 @@ export default function ResetPasswordPage() {
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    // Supabase puts the tokens in the URL hash — we need to exchange them
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        setReady(true)
+    // Handle both hash-based tokens (direct link) and session-based (after callback)
+    const handleSession = async () => {
+      // Check if there's a hash with access_token (direct magic link)
+      if (typeof window !== 'undefined' && window.location.hash) {
+        const hash = window.location.hash.substring(1)
+        const params = new URLSearchParams(hash)
+        const accessToken = params.get('access_token')
+        const refreshToken = params.get('refresh_token')
+        const type = params.get('type')
+        if (accessToken && (type === 'recovery' || type === 'magiclink')) {
+          const { error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken || '' })
+          if (!error) { setReady(true); return }
+        }
       }
-    })
-    // Also check if already has session (user clicked link)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setReady(true)
-    })
-    return () => subscription.unsubscribe()
+      // Check existing session
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) { setReady(true); return }
+
+      // Listen for PASSWORD_RECOVERY event
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session)) {
+          setReady(true)
+        }
+      })
+      return () => subscription.unsubscribe()
+    }
+    handleSession()
   }, [])
 
   async function handleReset() {
@@ -54,7 +70,7 @@ export default function ResetPasswordPage() {
         .hs-btn:hover:not(:disabled) { transform:translateY(-1px); box-shadow:0 8px 24px rgba(37,99,235,0.3); }
       `}</style>
 
-      <div style={{ width: '100%', maxWidth: 420, animation: 'fadeUp 0.5s ease' }}>
+      <div style={{ width: '100%', maxWidth: 420, padding: '0 24px', animation: 'fadeUp 0.5s ease' }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <div style={{ width: 56, height: 56, borderRadius: 16, background: 'linear-gradient(135deg,#2563EB,#7C3AED)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" /></svg>
@@ -70,8 +86,10 @@ export default function ResetPasswordPage() {
             <div style={{ fontSize: 13, color: '#64748B', marginTop: 4 }}>Redirecting to login...</div>
           </div>
         ) : !ready ? (
-          <div style={{ textAlign: 'center', padding: 24, color: '#94A3B8', fontSize: 14 }}>
-            Verifying reset link...
+          <div style={{ textAlign: 'center', padding: 24 }}>
+            <div style={{ width: 40, height: 40, borderRadius: '50%', border: '3px solid #E2E8F0', borderTopColor: '#2563EB', margin: '0 auto 16px', animation: 'spin 0.8s linear infinite' }} />
+            <div style={{ fontSize: 14, color: '#94A3B8' }}>Verifying reset link...</div>
+            <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
           </div>
         ) : (
           <div style={{ background: '#fff', borderRadius: 16, padding: 32, boxShadow: '0 4px 24px rgba(0,0,0,0.06)', border: '1px solid #E2E8F0' }}>
