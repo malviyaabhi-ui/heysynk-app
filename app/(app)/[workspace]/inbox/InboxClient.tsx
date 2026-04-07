@@ -139,6 +139,7 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
   const [campaignRules, setCampaignRules] = useState<any[]>([{ trigger: 'Page URL contains', op: 'contains', value: '' }])
   const [widgetOpen, setWidgetOpen] = useState(false)
   const [activityLog, setActivityLog] = useState<any[]>([])
+  const [liveVisitors, setLiveVisitors] = useState<any[]>([])
   const [activityFilter, setActivityFilter] = useState('all')
   const [inviteName, setInviteName] = useState('')
   const [inviteEmail, setInviteEmailVal] = useState('')
@@ -1184,7 +1185,8 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
               </div>
             </div>
           </div>
-        )}
+        )})()
+        }
 
         {activeNav === 'notifications' && (() => {
           const NOTIF_ICONS: Record<string,string> = { new_conversation: '🆕', customer_reply: '💬', ai_replied: '✦', resolved: '✅', urgent: '🚨' }
