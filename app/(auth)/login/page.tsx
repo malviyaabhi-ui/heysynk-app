@@ -54,9 +54,9 @@ export default function LoginPage() {
         if (!fullName.trim()) { setError('Please enter your full name'); setLoading(false); return }
         if (password !== confirmPassword) { setError('Passwords do not match'); setLoading(false); return }
         if (password.length < 8) { setError('Password must be at least 8 characters'); setLoading(false); return }
-        const { error: e } = await supabase.auth.signUp({ email, password, options: { data: { full_name: fullName, workspace_slug: workspace } } })
+        const { error: e } = await supabase.auth.signUp({ email, password, options: { data: { full_name: fullName } } })
         if (e) { setError(e.message); setLoading(false); return }
-        router.push(`/${workspace}/inbox`)
+        router.push('/onboarding')
       } else {
         const { error: e } = await supabase.auth.signInWithPassword({ email, password })
         if (e) { setError(e.message); setLoading(false); return }
