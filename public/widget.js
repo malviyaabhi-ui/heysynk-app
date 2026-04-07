@@ -2,7 +2,7 @@
   'use strict';
   
   var SUPABASE_URL = 'https://xqlbxcfzhtjegcbpfuml.supabase.co';
-  var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhxbGJ4Y2Z6aHRqZWdjYnBmdW1sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQwMzYwNDUsImV4cCI6MjA1OTYxMjA0NX0.MW3wGDVNDi7PkCMBFkLBhMHM6BJHP7bAGLgRcuAIFO4';
+  var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhxbGJ4Y2Z6aHRqZWdjYnBmdW1sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyMDQyNjksImV4cCI6MjA5MDc4MDI2OX0.v8rLyH5xJSBMeirfPK87jUHeBvSGvO7sXvUm56wbN6g';
   var API_URL = 'https://app.heysynk.app';
 
   var config = window.heySynk || {};
