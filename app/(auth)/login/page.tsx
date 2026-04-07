@@ -24,6 +24,18 @@ export default function LoginPage() {
   const [otp, setOtp] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [forgotSent, setForgotSent] = useState(false)
+
+  async function handleForgotPassword() {
+    if (!email.trim()) { setError('Enter your email address first'); return }
+    setLoading(true); setError('')
+    const { error: e } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `https://app.heysynk.app/${workspace}/inbox`
+    })
+    setLoading(false)
+    if (e) { setError(e.message); return }
+    setForgotSent(true)
+  }
 
   function switchMode(m: 'signin' | 'signup') {
     setMode(m); setStep('workspace'); setError('')
@@ -215,7 +227,9 @@ export default function LoginPage() {
                 <div style={{ marginBottom: 24 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                     <label style={{ fontSize: 13, fontWeight: 600, color: '#334155' }}>Password</label>
-                    <button style={{ fontSize: 13, color: '#2563EB', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Forgot password?</button>
+                    <button onClick={handleForgotPassword} disabled={loading} style={{ fontSize: 13, color: '#2563EB', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+                      {forgotSent ? '✓ Reset email sent!' : 'Forgot password?'}
+                    </button>
                   </div>
                   <input className="hs-input" value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="Enter your password"
                     onKeyDown={e => e.key === 'Enter' && !loading && handleAuth()} style={inputStyle} />
