@@ -138,6 +138,8 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
   const [campaignModal, setCampaignModal] = useState<any>(null)
   const [campaignRules, setCampaignRules] = useState<any[]>([{ trigger: 'Page URL contains', op: 'contains', value: '' }])
   const [widgetOpen, setWidgetOpen] = useState(false)
+  const [activityLog, setActivityLog] = useState<any[]>([])
+  const [activityFilter, setActivityFilter] = useState('all')
   const [inviteName, setInviteName] = useState('')
   const [inviteEmail, setInviteEmailVal] = useState('')
   const [inviteRole, setInviteRole] = useState('Agent')
@@ -168,7 +170,18 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
     setConversations((data || []) as Conversation[])
   }, [workspace.id, statusTab])
 
-  useEffect(() => { loadConversations() }, [loadConversations])
+  useEffect(() => {
+    loadConversations()
+    // Log login event
+    supabase.from('agent_activity').insert({
+      workspace_id: workspace.id,
+      agent_id: agent.id,
+      agent_name: agent.name,
+      event: 'login',
+      description: `${agent.name} signed in`,
+      metadata: { role: agent.role, email: agent.email },
+    }).then(() => {})
+  }, [loadConversations])
 
   // Seed notifications from real conversations
   useEffect(() => {
@@ -221,6 +234,7 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
     await supabase.from('messages').insert({ conversation_id: activeConv.id, workspace_id: workspace.id, sender_type: 'agent', sender_id: agent.id, body: reply, type: noteMode ? 'note' : 'text', is_private: noteMode })
     await supabase.from('conversations').update({ last_message: reply, last_message_at: new Date().toISOString() }).eq('id', activeConv.id)
     setReply(''); setAiDraft(''); setSending(false); loadConversations()
+    logActivity('reply_sent', `Replied to ${activeConv?.contacts?.name || 'customer'}`, { conversation_id: activeConv?.id })
     if (triggers.ai_replied && noteMode === false) {
       setNotifs(prev => [{
         id: 'n_' + Date.now(), type: 'customer_reply',
@@ -247,6 +261,7 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
     await supabase.from('conversations').update({ status: 'resolved' }).eq('id', activeConv.id)
     await fetch('/api/email/csat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ conversation_id: activeConv.id }) })
     setActiveConv(null); loadConversations()
+    logActivity('resolve', `Resolved conversation with ${activeConv?.contacts?.name || 'customer'}`, { conversation_id: activeConv?.id })
     if (triggers.resolved) {
       setNotifs(prev => [{
         id: 'n_' + Date.now(), type: 'resolved',
@@ -344,7 +359,8 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
       })
       const data = await res.json()
       if (!res.ok) { setInviteError(data.error || 'Failed to send invite'); }
-      else { setInviteSuccess(`✓ Invite sent to ${inviteEmail}`); setInviteName(''); setInviteEmailVal(''); setInvitePassword('') }
+      else { setInviteSuccess(`✓ Invite sent to ${inviteEmail}`); setInviteName(''); setInviteEmailVal(''); setInvitePassword('')
+          logActivity('invite_sent', `Invited ${inviteName} (${inviteEmail}) as ${inviteRole}`, { email: inviteEmail, role: inviteRole }) }
     } catch { setInviteError('Something went wrong') }
     setInviteLoading(false)
   }
@@ -357,7 +373,20 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
     const { error } = await supabase.auth.updateUser({ password: profilePassword })
     setProfileSaving(false)
     if (error) { setProfileMsg(error.message) }
-    else { setProfileMsg('✓ Password updated successfully'); setProfilePassword(''); setProfileConfirm('') }
+    else { setProfileMsg('✓ Password updated successfully'); setProfilePassword(''); setProfileConfirm(''); logActivity('password_changed', `${agent.name} changed their password`, {}) }
+  }
+
+  async function logActivity(event: string, description: string, metadata: any = {}) {
+    try {
+      await supabase.from('agent_activity').insert({
+        workspace_id: workspace.id,
+        agent_id: agent.id,
+        agent_name: agent.name,
+        event,
+        description,
+        metadata,
+      })
+    } catch (e) { console.error('Activity log error:', e) }
   }
 
   return (
@@ -1486,7 +1515,12 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
                         <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>{agent.name} <span style={{ fontSize: 10, color: '#94A3B8' }}>(you)</span></div>
                         <div style={{ fontSize: 12, color: '#64748B' }}>{agent.email}</div>
                       </div>
-                      <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: `${accent}15`, color: accent }}>{agent.role}</span>
+                      <div style={{ textAlign: 'right' }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: `${accent}15`, color: accent }}>{agent.role}</span>
+                        <div style={{ fontSize: 11, color: '#16A34A', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
+                          <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#16A34A' }} /> Online now
+                        </div>
+                      </div>
                     </div>
                     <div style={{ padding: '20px 0', textAlign: 'center', color: '#94A3B8', fontSize: 13 }}>Invite more agents to collaborate</div>
                     <div style={{ background: '#F8FAFC', borderRadius: 10, padding: 20, border: '1px dashed #E2E8F0' }}>
