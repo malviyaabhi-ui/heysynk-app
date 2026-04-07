@@ -30,7 +30,7 @@ export default function LoginPage() {
     if (!email.trim()) { setError('Enter your email address first'); return }
     setLoading(true); setError('')
     const { error: e } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `https://app.heysynk.app/${workspace}/inbox`
+      redirectTo: 'https://app.heysynk.app/reset-password'
     })
     setLoading(false)
     if (e) { setError(e.message); return }
