@@ -20,9 +20,11 @@ export async function POST(request: Request) {
     })
 
     const data = await res.json()
+    console.log('Anthropic response:', JSON.stringify(data).slice(0, 200))
+    if (data.error) console.error('Anthropic error:', data.error)
     const reply = data.content?.[0]?.text || 'Thanks for reaching out! Our team will get back to you shortly.'
 
-    return NextResponse.json({ reply }, {
+    return NextResponse.json({ reply, debug: data.error || null }, {
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'POST, OPTIONS',
