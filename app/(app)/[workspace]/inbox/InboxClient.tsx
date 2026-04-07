@@ -138,6 +138,17 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
   const [campaignModal, setCampaignModal] = useState<any>(null)
   const [campaignRules, setCampaignRules] = useState<any[]>([{ trigger: 'Page URL contains', op: 'contains', value: '' }])
   const [widgetOpen, setWidgetOpen] = useState(false)
+  const [inviteName, setInviteName] = useState('')
+  const [inviteEmail, setInviteEmailVal] = useState('')
+  const [inviteRole, setInviteRole] = useState('Agent')
+  const [invitePassword, setInvitePassword] = useState('')
+  const [inviteLoading, setInviteLoading] = useState(false)
+  const [inviteSuccess, setInviteSuccess] = useState('')
+  const [inviteError, setInviteError] = useState('')
+  const [profilePassword, setProfilePassword] = useState('')
+  const [profileConfirm, setProfileConfirm] = useState('')
+  const [profileSaving, setProfileSaving] = useState(false)
+  const [profileMsg, setProfileMsg] = useState('')
   const [widgetChatMsg, setWidgetChatMsg] = useState('')
   const [widgetMessages, setWidgetMessages] = useState<{role:string;text:string}[]>([{ role: 'bot', text: 'Hi there! 👋 Welcome to heySynk Help. Ask me anything or browse articles below.' }])
   const [widgetTab, setWidgetTab] = useState<'chat'|'articles'>('chat')
@@ -321,6 +332,33 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
     }, 300)
     return () => clearTimeout(t)
   }, [globalSearch, workspace.id])
+
+  async function sendInvite() {
+    if (!inviteName.trim() || !inviteEmail.trim() || !invitePassword.trim()) { setInviteError('Please fill in all fields'); return }
+    setInviteLoading(true); setInviteError(''); setInviteSuccess('')
+    try {
+      const res = await fetch('/api/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: inviteName, email: inviteEmail, password: invitePassword, role: inviteRole, workspace_id: workspace.id, workspace_slug: workspace.slug })
+      })
+      const data = await res.json()
+      if (!res.ok) { setInviteError(data.error || 'Failed to send invite'); }
+      else { setInviteSuccess(`✓ Invite sent to ${inviteEmail}`); setInviteName(''); setInviteEmailVal(''); setInvitePassword('') }
+    } catch { setInviteError('Something went wrong') }
+    setInviteLoading(false)
+  }
+
+  async function updatePassword() {
+    if (!profilePassword.trim()) { setProfileMsg('Enter a new password'); return }
+    if (profilePassword.length < 8) { setProfileMsg('Password must be at least 8 characters'); return }
+    if (profilePassword !== profileConfirm) { setProfileMsg('Passwords do not match'); return }
+    setProfileSaving(true); setProfileMsg('')
+    const { error } = await supabase.auth.updateUser({ password: profilePassword })
+    setProfileSaving(false)
+    if (error) { setProfileMsg(error.message) }
+    else { setProfileMsg('✓ Password updated successfully'); setProfilePassword(''); setProfileConfirm('') }
+  }
 
   return (
     <>
@@ -1347,6 +1385,7 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
                 { id: 'billing', label: 'Billing', icon: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z' },
                 { id: 'email', label: 'Email & SMTP', icon: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
                 { id: 'activity', label: 'Activity Log', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' },
+                { id: 'security', label: 'My Password', icon: 'M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z' },
                 { id: 'danger', label: 'Danger Zone', icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z' },
               ].map((item: any) => item.section ? (
                 <div key={item.section} style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.07em', padding: '10px 10px 5px' }}>{item.section}</div>
@@ -1453,16 +1492,20 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
                     <div style={{ background: '#F8FAFC', borderRadius: 10, padding: 20, border: '1px dashed #E2E8F0' }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginBottom: 14 }}>Invite New Agent</div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-                        <input placeholder="Full Name" style={{ padding: '8px 12px', borderRadius: 8, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, fontFamily: 'inherit' }} />
-                        <input placeholder="Email address" type="email" style={{ padding: '8px 12px', borderRadius: 8, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, fontFamily: 'inherit' }} />
+                        <input value={inviteName} onChange={e => setInviteName(e.target.value)} placeholder="Full Name" style={{ padding: '8px 12px', borderRadius: 8, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, fontFamily: 'inherit' }} />
+                        <input value={inviteEmail} onChange={e => setInviteEmailVal(e.target.value)} placeholder="Email address" type="email" style={{ padding: '8px 12px', borderRadius: 8, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, fontFamily: 'inherit' }} />
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
-                        <select style={{ padding: '8px 12px', borderRadius: 8, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, cursor: 'pointer' }}>
+                        <select value={inviteRole} onChange={e => setInviteRole(e.target.value)} style={{ padding: '8px 12px', borderRadius: 8, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, cursor: 'pointer' }}>
                           <option>Agent</option><option>Senior Agent</option><option>Support Lead</option><option>Admin</option>
                         </select>
-                        <input placeholder="Temporary password" type="password" style={{ padding: '8px 12px', borderRadius: 8, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, fontFamily: 'inherit' }} />
+                        <input value={invitePassword} onChange={e => setInvitePassword(e.target.value)} placeholder="Temporary password" type="password" style={{ padding: '8px 12px', borderRadius: 8, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, fontFamily: 'inherit' }} />
                       </div>
-                      <button style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: accent, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Send Invite</button>
+                      {inviteError && <p style={{ fontSize: 12, color: '#EF4444', marginBottom: 10 }}>{inviteError}</p>}
+                      {inviteSuccess && <p style={{ fontSize: 12, color: '#16A34A', marginBottom: 10 }}>{inviteSuccess}</p>}
+                      <button onClick={sendInvite} disabled={inviteLoading} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: accent, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                        {inviteLoading ? 'Sending...' : 'Send Invite'}
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -1726,6 +1769,31 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
                         </div>
                       </div>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {adminPage === 'security' && (
+                <div style={{ padding: 28 }}>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: '#0F172A', marginBottom: 4 }}>Change Password</div>
+                  <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 24 }}>Update the password for your account: {agent.email}</div>
+                  <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: 24, maxWidth: 420 }}>
+                    <div style={{ marginBottom: 16 }}>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#334155', marginBottom: 6 }}>New Password</label>
+                      <input value={profilePassword} onChange={e => setProfilePassword(e.target.value)} type="password" placeholder="Min. 8 characters"
+                        style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box' as const }} />
+                    </div>
+                    <div style={{ marginBottom: 20 }}>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#334155', marginBottom: 6 }}>Confirm Password</label>
+                      <input value={profileConfirm} onChange={e => setProfileConfirm(e.target.value)} type="password" placeholder="Repeat your password"
+                        onKeyDown={e => e.key === 'Enter' && updatePassword()}
+                        style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box' as const }} />
+                    </div>
+                    {profileMsg && <p style={{ fontSize: 13, color: profileMsg.startsWith('✓') ? '#16A34A' : '#EF4444', marginBottom: 16 }}>{profileMsg}</p>}
+                    <button onClick={updatePassword} disabled={profileSaving}
+                      style={{ padding: '10px 24px', borderRadius: 8, border: 'none', background: accent, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                      {profileSaving ? 'Updating...' : 'Update Password'}
+                    </button>
                   </div>
                 </div>
               )}
