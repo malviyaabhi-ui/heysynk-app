@@ -140,6 +140,7 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
   const [widgetOpen, setWidgetOpen] = useState(false)
   const [activityLog, setActivityLog] = useState<any[]>([])
   const [liveVisitors, setLiveVisitors] = useState<any[]>([])
+  const [selectedVisitor, setSelectedVisitor] = useState<string|null>(null)
   const [activityFilter, setActivityFilter] = useState('all')
   const [inviteName, setInviteName] = useState('')
   const [inviteEmail, setInviteEmailVal] = useState('')
@@ -1388,17 +1389,23 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
                     {liveVisitors.length === 0 ? (
                       <div style={{ textAlign: 'center', padding: 40, color: '#94A3B8', fontSize: 13 }}>No recent visitors yet</div>
                     ) : liveVisitors.map((v, i) => (
-                      <div key={i} style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: '14px 18px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 14 }}>
-                        <div style={{ width: 40, height: 40, borderRadius: '50%', background: avatarColor(v.name), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#fff', flexShrink: 0 }}>{initials(v.name)}</div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginBottom: 2 }}>{v.name}</div>
-                          <div style={{ fontSize: 12, color: '#64748B' }}>{v.page} · {v.location}</div>
+                      <div key={v.id || i} style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: '14px 18px', marginBottom: 10 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                          <div style={{ width: 38, height: 38, borderRadius: '50%', background: avatarColor(v.name || 'V'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff', flexShrink: 0 }}>{initials(v.name || 'V')}</div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>{v.name || 'Anonymous'}</div>
+                            <div style={{ fontSize: 11, color: '#64748B' }}>{v.city ? v.city + ', ' : ''}{v.country || 'Unknown'} · {v.ip_address || 'No IP'} · {v.device}</div>
+                          </div>
+                          <div style={{ textAlign: 'right' as const, fontSize: 11, color: '#94A3B8' }}>
+                            <div>{new Date(v.last_seen).toLocaleTimeString()}</div>
+                            <div>{v.total_pages || 1} page{(v.total_pages || 1) > 1 ? 's' : ''}</div>
+                          </div>
                         </div>
-                        <div style={{ textAlign: 'right' as const, flexShrink: 0 }}>
-                          <div style={{ fontSize: 12, color: '#94A3B8', marginBottom: 4 }}>{v.time}</div>
-                          <div style={{ fontSize: 11, color: '#CBD5E1' }}>{v.sessions} session{v.sessions > 1 ? 's' : ''}</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 4 }}>
+                          {(Array.isArray(v.pages_visited) ? v.pages_visited : []).map((p: any, j: number) => (
+                            <span key={j} style={{ fontSize: 10, padding: '2px 7px', borderRadius: 4, background: p.path === v.current_page ? `${accent}15` : '#F1F5F9', color: p.path === v.current_page ? accent : '#64748B', border: p.path === v.current_page ? `1px solid ${accent}30` : 'none' }}>{p.path}</span>
+                          ))}
                         </div>
-                        <button style={{ fontSize: 12, padding: '5px 12px', borderRadius: 7, border: `1.5px solid ${accent}`, background: `${accent}10`, color: accent, cursor: 'pointer', fontWeight: 600, flexShrink: 0 }}>Chat</button>
                       </div>
                     ))}
                   </div>
