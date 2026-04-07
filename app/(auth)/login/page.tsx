@@ -44,11 +44,11 @@ export default function LoginPage() {
         if (password.length < 8) { setError('Password must be at least 8 characters'); setLoading(false); return }
         const { error: e } = await supabase.auth.signUp({ email, password, options: { data: { full_name: fullName, workspace_slug: workspace } } })
         if (e) { setError(e.message); setLoading(false); return }
-        setStep('otp')
+        router.push(`/${workspace}/inbox`)
       } else {
-        const { error: e } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: `https://app.heysynk.app/${workspace}/inbox` } })
+        const { error: e } = await supabase.auth.signInWithPassword({ email, password })
         if (e) { setError(e.message); setLoading(false); return }
-        setStep('otp')
+        router.push(`/${workspace}/inbox`)
       }
     } catch (e: any) { setError(e.message || 'Something went wrong') }
     setLoading(false)
@@ -212,14 +212,19 @@ export default function LoginPage() {
               )}
 
               {mode === 'signin' && (
-                <p style={{ fontSize: 13, color: '#64748B', background: '#F1F5F9', borderRadius: 8, padding: '10px 14px', marginBottom: 24, lineHeight: 1.6 }}>
-                  ✉️ We&apos;ll send a <strong>one-time code</strong> to your email. No password needed.
-                </p>
+                <div style={{ marginBottom: 24 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <label style={{ fontSize: 13, fontWeight: 600, color: '#334155' }}>Password</label>
+                    <button style={{ fontSize: 13, color: '#2563EB', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Forgot password?</button>
+                  </div>
+                  <input className="hs-input" value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="Enter your password"
+                    onKeyDown={e => e.key === 'Enter' && !loading && handleAuth()} style={inputStyle} />
+                </div>
               )}
 
               {error && <p style={{ fontSize: 13, color: '#EF4444', marginBottom: 16 }}>{error}</p>}
-              <button className="hs-btn" onClick={handleAuth} disabled={loading || !email.trim()} style={btnStyle(!loading && !!email.trim())}>
-                {loading ? 'Please wait...' : mode === 'signup' ? 'Create Free Account →' : 'Send Magic Code →'}
+              <button className="hs-btn" onClick={handleAuth} disabled={loading || !email.trim()} style={btnStyle(!loading && !!email.trim() && !!password.trim())}>
+                {loading ? 'Please wait...' : mode === 'signup' ? 'Create Free Account →' : 'Sign In →'}
               </button>
               <p style={{ fontSize: 12, color: '#94A3B8', textAlign: 'center', marginTop: 16 }}>
                 {mode === 'signup' ? 'By signing up you agree to our Terms of Service and Privacy Policy' : 'Protected by heySynk Security · SSL Encrypted'}
