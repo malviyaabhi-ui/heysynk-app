@@ -67,7 +67,22 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{ display: 'flex', height: '100vh', fontFamily: '"SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif' }}>
+    <>
+      <style>{`
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes float { 0%,100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
+        @keyframes pulse-glow { 0%,100% { box-shadow: 0 0 32px rgba(37,99,235,0.4); } 50% { box-shadow: 0 0 52px rgba(37,99,235,0.7), 0 0 80px rgba(124,58,237,0.3); } }
+        @keyframes shimmer { 0% { background-position: -200% center; } 100% { background-position: 200% center; } }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes checkIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+        .login-input-field:focus { border-color: #2563EB !important; box-shadow: 0 0 0 3px rgba(37,99,235,0.12); }
+        .login-btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(37,99,235,0.35); }
+        .login-btn-primary:active:not(:disabled) { transform: translateY(0); }
+        .mode-toggle:hover { color: #1D4ED8 !important; text-decoration: underline; }
+        .back-btn:hover { color: #2563EB !important; }
+      `}</style>
+    <div style={{ display: 'flex', height: '100vh', fontFamily: '"SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif', animation: 'fadeIn 0.4s ease' }}>
 
       {/* LEFT PANEL */}
       <div style={{ width: '42%', background: '#0F0F0F', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 48px', position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
@@ -76,13 +91,13 @@ export default function LoginPage() {
         <div style={{ position: 'absolute', bottom: '15%', right: '10%', width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,58,237,0.2) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
         {/* Logo */}
-        <div style={{ width: 64, height: 64, borderRadius: 18, background: 'linear-gradient(135deg, #2563EB, #7C3AED)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24, boxShadow: '0 0 32px rgba(37,99,235,0.4)' }}>
+        <div style={{ width: 64, height: 64, borderRadius: 18, background: 'linear-gradient(135deg, #2563EB, #7C3AED)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24, animation: 'float 3s ease-in-out infinite, pulse-glow 3s ease-in-out infinite' }}>
           <svg width="28" height="28" viewBox="0 0 24 24" fill="white">
             <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" />
           </svg>
         </div>
 
-        <h1 style={{ fontSize: 32, fontWeight: 900, color: '#fff', marginBottom: 12, textAlign: 'center', letterSpacing: '-0.5px' }}>
+        <h1 style={{ fontSize: 32, fontWeight: 900, color: '#fff', marginBottom: 12, textAlign: 'center', letterSpacing: '-0.5px', animation: 'fadeUp 0.6s ease 0.2s both' }}>
           {mode === 'signup' ? 'Start for free' : 'Welcome back'}
         </h1>
         <p style={{ fontSize: 15, color: '#94A3B8', textAlign: 'center', lineHeight: 1.7, marginBottom: 40, maxWidth: 280 }}>
@@ -94,7 +109,7 @@ export default function LoginPage() {
         {mode === 'signup' ? (
           <div style={{ width: '100%', maxWidth: 300 }}>
             {FEATURES.map((f, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14, animation: `checkIn 0.5s ease ${0.3 + i * 0.1}s both` }}>
                 <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(37,99,235,0.2)', border: '1px solid rgba(37,99,235,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                 </div>
@@ -129,7 +144,7 @@ export default function LoginPage() {
             )}
           </div>
 
-          <h2 style={{ fontSize: 32, fontWeight: 900, color: '#0F172A', marginBottom: 8, letterSpacing: '-0.5px' }}>
+          <h2 style={{ fontSize: 32, fontWeight: 900, color: '#0F172A', marginBottom: 8, letterSpacing: '-0.5px', animation: 'fadeUp 0.5s ease 0.1s both' }}>
             {mode === 'signup' ? 'Create your account' : `Sign in to heySynk`}
           </h2>
           <p style={{ fontSize: 14, color: '#94A3B8', marginBottom: 36 }}>
@@ -153,14 +168,14 @@ export default function LoginPage() {
               </div>
               {error && <p style={{ fontSize: 13, color: '#EF4444', marginBottom: 16 }}>{error}</p>}
               <button onClick={handleContinue} disabled={loading || !workspace.trim()}
-                style={{ width: '100%', padding: '14px', borderRadius: 10, border: 'none', background: !workspace.trim() ? '#E2E8F0' : 'linear-gradient(135deg, #2563EB, #1D4ED8)', color: !workspace.trim() ? '#94A3B8' : '#fff', fontSize: 15, fontWeight: 700, cursor: !workspace.trim() ? 'not-allowed' : 'pointer', letterSpacing: '0.01em' }}>
+                className='login-btn-primary' style={{ width: '100%', padding: '14px', borderRadius: 10, border: 'none', background: !workspace.trim() ? '#E2E8F0' : 'linear-gradient(135deg, #2563EB, #1D4ED8)', color: !workspace.trim() ? '#94A3B8' : '#fff', fontSize: 15, fontWeight: 700, cursor: !workspace.trim() ? 'not-allowed' : 'pointer', letterSpacing: '0.01em', transition: 'transform 0.15s, box-shadow 0.15s' }}>
                 Continue →
               </button>
             </>
           )}
 
           {/* Auth step */}
-          {step === 'auth' && !otpSent && (
+          {step === 'auth' && !otpSent && (<div style={{ animation: 'slideIn 0.35s ease' }}>
             <>
               <button onClick={() => { setStep('workspace'); setError('') }} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#64748B', background: 'none', border: 'none', cursor: 'pointer', marginBottom: 24, padding: 0, fontFamily: 'inherit' }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
@@ -171,14 +186,14 @@ export default function LoginPage() {
                 <div style={{ marginBottom: 18 }}>
                   <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#334155', marginBottom: 8 }}>Full name</label>
                   <input value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Jane Doe" autoFocus
-                    style={{ width: '100%', padding: '12px 14px', borderRadius: 10, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 14, fontFamily: 'inherit', background: '#fff', color: '#0F172A', boxSizing: 'border-box' }} />
+                    className='login-input-field' style={{ width: '100%', padding: '12px 14px', borderRadius: 10, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 14, fontFamily: 'inherit', background: '#fff', color: '#0F172A', boxSizing: 'border-box', transition: 'border-color 0.2s, box-shadow 0.2s' }} />
                 </div>
               )}
 
               <div style={{ marginBottom: 18 }}>
                 <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#334155', marginBottom: 8 }}>Email address</label>
                 <input value={email} onChange={e => setEmail(e.target.value)} type="email" placeholder="you@company.com" autoFocus={mode === 'signin'}
-                  style={{ width: '100%', padding: '12px 14px', borderRadius: 10, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 14, fontFamily: 'inherit', background: '#fff', color: '#0F172A', boxSizing: 'border-box' }} />
+                  className='login-input-field' style={{ width: '100%', padding: '12px 14px', borderRadius: 10, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 14, fontFamily: 'inherit', background: '#fff', color: '#0F172A', boxSizing: 'border-box', transition: 'border-color 0.2s, box-shadow 0.2s' }} />
               </div>
 
               {mode === 'signup' && (
@@ -186,13 +201,13 @@ export default function LoginPage() {
                   <div style={{ marginBottom: 18 }}>
                     <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#334155', marginBottom: 8 }}>Password</label>
                     <input value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="Min. 8 characters"
-                      style={{ width: '100%', padding: '12px 14px', borderRadius: 10, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 14, fontFamily: 'inherit', background: '#fff', color: '#0F172A', boxSizing: 'border-box' }} />
+                      className='login-input-field' style={{ width: '100%', padding: '12px 14px', borderRadius: 10, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 14, fontFamily: 'inherit', background: '#fff', color: '#0F172A', boxSizing: 'border-box', transition: 'border-color 0.2s, box-shadow 0.2s' }} />
                   </div>
                   <div style={{ marginBottom: 24 }}>
                     <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#334155', marginBottom: 8 }}>Confirm password</label>
                     <input value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} type="password" placeholder="Repeat your password"
                       onKeyDown={e => e.key === 'Enter' && handleAuth()}
-                      style={{ width: '100%', padding: '12px 14px', borderRadius: 10, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 14, fontFamily: 'inherit', background: '#fff', color: '#0F172A', boxSizing: 'border-box' }} />
+                      className='login-input-field' style={{ width: '100%', padding: '12px 14px', borderRadius: 10, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 14, fontFamily: 'inherit', background: '#fff', color: '#0F172A', boxSizing: 'border-box', transition: 'border-color 0.2s, box-shadow 0.2s' }} />
                   </div>
                 </>
               )}
@@ -205,7 +220,7 @@ export default function LoginPage() {
                   </div>
                   <input value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="········"
                     onKeyDown={e => e.key === 'Enter' && handleAuth()}
-                    style={{ width: '100%', padding: '12px 14px', borderRadius: 10, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 14, fontFamily: 'inherit', background: '#fff', color: '#0F172A', boxSizing: 'border-box' }} />
+                    className='login-input-field' style={{ width: '100%', padding: '12px 14px', borderRadius: 10, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 14, fontFamily: 'inherit', background: '#fff', color: '#0F172A', boxSizing: 'border-box', transition: 'border-color 0.2s, box-shadow 0.2s' }} />
                 </div>
               )}
 
@@ -223,11 +238,11 @@ export default function LoginPage() {
               {mode === 'signin' && (
                 <p style={{ fontSize: 12, color: '#94A3B8', textAlign: 'center', marginTop: 16 }}>Protected by heySynk Security · SSL Encrypted</p>
               )}
-            </>
+            </></div>
           )}
 
           {/* OTP verification step */}
-          {otpSent && (
+          {otpSent && (<div style={{ animation: 'slideIn 0.35s ease' }}>
             <>
               <div style={{ textAlign: 'center', marginBottom: 32 }}>
                 <div style={{ width: 56, height: 56, borderRadius: 16, background: 'linear-gradient(135deg, #2563EB, #7C3AED)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
