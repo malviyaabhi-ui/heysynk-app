@@ -5,6 +5,7 @@
   var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhxbGJ4Y2Z6aHRqZWdjYnBmdW1sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyMDQyNjksImV4cCI6MjA5MDc4MDI2OX0.v8rLyH5xJSBMeirfPK87jUHeBvSGvO7sXvUm56wbN6g';
   var AI_URL = 'https://app.heysynk.app/api/ai/reply';
 
+
   var config = window.heySynk || {};
   var workspaceSlug = config.workspace || 'risertechnologies';
   var brandName = config.brand || 'DevLokr';
@@ -46,10 +47,10 @@
   // ── Styles ──────────────────────────────────────
   var style = document.createElement('style');
   style.textContent = [
-    '#hs-widget-btn{position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:99998;box-shadow:0 4px 20px rgba(0,0,0,.2);transition:transform .2s,box-shadow .2s}',
+    '#hs-widget-btn{position:fixed!important;bottom:24px!important;right:24px!important;left:auto!important;top:auto!important;width:56px!important;height:56px!important;border-radius:50%!important;border:none!important;cursor:pointer!important;display:flex!important;align-items:center!important;justify-content:center!important;z-index:99998!important;box-shadow:0 4px 20px rgba(0,0,0,.2)!important;transition:transform .2s,box-shadow .2s!important;margin:0!important;padding:0!important}',
     '#hs-widget-btn:hover{transform:scale(1.08);box-shadow:0 8px 28px rgba(0,0,0,.25)}',
-    '#hs-widget-panel{position:fixed;bottom:92px;right:24px;width:360px;height:520px;border-radius:16px;background:#fff;box-shadow:0 16px 48px rgba(0,0,0,.18);z-index:99999;display:none;flex-direction:column;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif;border:1px solid #E2E8F0}',
-    '#hs-widget-panel.open{display:flex}',
+    '#hs-widget-panel{position:fixed!important;bottom:92px!important;right:24px!important;left:auto!important;top:auto!important;width:360px!important;height:520px!important;border-radius:16px!important;background:#fff!important;box-shadow:0 16px 48px rgba(0,0,0,.18)!important;z-index:99999!important;display:none!important;flex-direction:column!important;overflow:hidden!important;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif!important;border:1px solid #E2E8F0!important}',
+    '#hs-widget-panel.open{display:flex!important}',
     '#hs-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px}',
     '.hs-msg-bot{display:flex;gap:8px;align-items:flex-end}.hs-msg-bot .hs-bubble{background:#F1F5F9;color:#0F172A;border-radius:16px 16px 16px 4px}',
     '.hs-msg-user{display:flex;justify-content:flex-end}.hs-msg-user .hs-bubble{color:#fff;border-radius:16px 16px 4px 16px}',
@@ -156,10 +157,10 @@
 
   async function getAIReply(userMsg, context) {
     try {
-      var res = await fetch(AI_URL, {
+      var res = await fetch('https://app.heysynk.app/api/ai/reply', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ context: context, customer_name: visitorName || 'Visitor', agent_name: brandName + ' AI', workspace_id: workspaceId })
+        body: JSON.stringify({ context: context, customer_name: visitorName || 'Visitor', agent_name: brandName + ' Support', workspace_id: workspaceId })
       });
       var data = await res.json();
       return data.reply || 'Thanks for reaching out! Our team will get back to you shortly.';
@@ -214,7 +215,7 @@
 
     // Store AI reply as message
     if (conversationId) {
-      await api('POST', 'messages', { conversation_id: conversationId, workspace_id: workspaceId, sender_type: 'agent', body: reply, type: 'text', is_ai: true });
+      await api('POST', 'messages', { conversation_id: conversationId, workspace_id: workspaceId, sender_type: 'agent', body: reply, type: 'text' });
     }
   }
 
@@ -230,7 +231,7 @@
     removeTyping();
     addMessage(reply, 'bot');
     if (conversationId) {
-      await api('POST', 'messages', { conversation_id: conversationId, workspace_id: workspaceId, sender_type: 'agent', body: reply, type: 'text', is_ai: true });
+      await api('POST', 'messages', { conversation_id: conversationId, workspace_id: workspaceId, sender_type: 'agent', body: reply, type: 'text' });
     }
   }
 
