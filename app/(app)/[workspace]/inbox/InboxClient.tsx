@@ -349,6 +349,28 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
     return () => clearTimeout(t)
   }, [globalSearch, workspace.id])
 
+  // Live visitors subscription
+  useEffect(() => {
+    if (activeNav !== 'visitors') return
+    const loadVisitors = async () => {
+      const twoMinsAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString()
+      const { data } = await supabase.from('live_visitors').select('*').eq('workspace_id', workspace.id).gte('last_seen', twoMinsAgo).order('last_seen', { ascending: false })
+      setLiveVisitors(data || [])
+    }
+    loadVisitors()
+    const interval = setInterval(loadVisitors, 15000)
+    const ch = supabase.channel('lv:' + workspace.id)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'live_visitors', filter: 'workspace_id=eq.' + workspace.id }, loadVisitors)
+      .subscribe()
+    return () => { clearInterval(interval); supabase.removeChannel(ch) }
+  }, [activeNav])
+
+  // Activity log
+  useEffect(() => {
+    if (adminPage !== 'activity') return
+    supabase.from('agent_activity').select('*').eq('workspace_id', workspace.id).order('created_at', { ascending: false }).limit(100).then(({ data }) => setActivityLog(data || []))
+  }, [adminPage])
+
   async function sendInvite() {
     if (!inviteName.trim() || !inviteEmail.trim() || !invitePassword.trim()) { setInviteError('Please fill in all fields'); return }
     setInviteLoading(true); setInviteError(''); setInviteSuccess('')
@@ -390,9 +412,11 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
     } catch (e) { console.error('Activity log error:', e) }
   }
 
+  const cssStyles = '@keyframes glow-pulse{0%,100%{opacity:1}50%{opacity:0.5}} @keyframes spin{to{transform:rotate(360deg)}} *{box-sizing:border-box}'
+
   return (
     <>
-      <style>{`@keyframes glow-pulse{0%,100%{opacity:1}50%{opacity:0.5}} @keyframes spin{to{transform:rotate(360deg)}} *{box-sizing:border-box}`}</style>
+      <style dangerouslySetInnerHTML={{ __html: cssStyles }} />
       <div style={{ display: 'flex', height: '100vh', background: '#fff', fontFamily: '"SF Pro Display",-apple-system,BlinkMacSystemFont,sans-serif', overflow: 'hidden' }}>
 
         {/* SIDEBAR */}
@@ -1185,8 +1209,7 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
               </div>
             </div>
           </div>
-        )})()
-        }
+        )}
 
         {activeNav === 'notifications' && (() => {
           const NOTIF_ICONS: Record<string,string> = { new_conversation: '🆕', customer_reply: '💬', ai_replied: '✦', resolved: '✅', urgent: '🚨' }
@@ -1301,18 +1324,15 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
         })()}
 
         {activeNav === 'visitors' && (() => {
-          const demoRecent = [
-            { name: 'Priya Sharma', page: '/pricing', location: 'Mumbai, IN', time: '2m ago', sessions: 3 },
-            { name: 'Marcus Chen', page: '/checkout', location: 'San Francisco, US', time: '8m ago', sessions: 1 },
-            { name: 'Anonymous', page: '/blog/setup-guide', location: 'London, UK', time: '15m ago', sessions: 1 },
-          ]
+          const twoMinsAgo = new Date(Date.now() - 2 * 60 * 1000)
+          const onlineVisitors = liveVisitors.filter(v => new Date(v.last_seen) > twoMinsAgo)
           return (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#F8FAFC' }}>
               <div style={{ background: '#fff', borderBottom: '1px solid #E2E8F0', padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ fontSize: 16, fontWeight: 800, color: '#0F172A' }}>Live Visitors</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 20, background: '#DCFCE7', color: '#16A34A', fontSize: 12, fontWeight: 700 }}>
-                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#16A34A', animation: 'glow-pulse 1.5s ease-in-out infinite' }} />
-                  Live
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 20, background: onlineVisitors.length > 0 ? '#DCFCE7' : '#F1F5F9', color: onlineVisitors.length > 0 ? '#16A34A' : '#94A3B8', fontSize: 12, fontWeight: 700 }}>
+                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: onlineVisitors.length > 0 ? '#16A34A' : '#94A3B8', animation: onlineVisitors.length > 0 ? 'glow-pulse 1.5s ease-in-out infinite' : 'none' }} />
+                  {onlineVisitors.length > 0 ? `${onlineVisitors.length} Live` : 'No visitors'}
                 </div>
               </div>
               {/* Tabs */}
@@ -1321,23 +1341,53 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
                   <button key={tab.id} onClick={() => setVpTab(tab.id)}
                     style={{ padding: '10px 20px', border: 'none', background: 'transparent', fontSize: 13, fontWeight: 700, cursor: 'pointer', color: vpTab === tab.id ? accent : '#64748B', borderBottom: vpTab === tab.id ? `2px solid ${accent}` : '2px solid transparent', display: 'flex', alignItems: 'center', gap: 6 }}>
                     {tab.label}
-                    {tab.id === 'visitors' && <span style={{ fontSize: 10, fontWeight: 800, background: accent, color: '#fff', padding: '1px 6px', borderRadius: 10 }}>0</span>}
+                    {tab.id === 'visitors' && <span style={{ fontSize: 10, fontWeight: 800, background: accent, color: '#fff', padding: '1px 6px', borderRadius: 10 }}>{onlineVisitors.length}</span>}
                   </button>
                 ))}
               </div>
               <div style={{ flex: 1, overflowY: 'auto' }}>
                 {vpTab === 'visitors' && (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, height: '100%' }}>
-                    <div style={{ fontSize: 72, fontWeight: 800, color: accent }}>0</div>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: '#94A3B8' }}>visitors on your site right now</div>
-                    <div style={{ fontSize: 13, color: '#CBD5E1' }}>Visitors appear here when your chat widget is installed</div>
-                    <button onClick={() => setActiveNav('widget')} style={{ padding: '9px 20px', borderRadius: 8, border: 'none', background: accent, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Set up Widget</button>
+                  <div style={{ padding: 24 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16, marginBottom: 24 }}>
+                      {([{ label: 'On Site Now', value: onlineVisitors.length, color: '#16A34A' }, { label: 'Total Today', value: liveVisitors.length, color: '#2563EB' }, { label: 'Devices', value: liveVisitors.map(v => v.device).filter((d, i, a) => a.indexOf(d) === i).join(' / ') || '—', color: '#0F172A' }] as any[]).map(s => (
+                        <div key={s.label} style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: '16px 20px' }}>
+                          <div style={{ fontSize: 24, fontWeight: 800, color: s.color, marginBottom: 4 }}>{s.value}</div>
+                          <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '.05em' }}>{s.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                    {onlineVisitors.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '40px 20px', background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0' }}>
+                        <div style={{ fontSize: 40, marginBottom: 12 }}>👁</div>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: '#0F172A', marginBottom: 8 }}>No visitors on site right now</div>
+                        <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 20 }}>Install the widget on your website to start tracking visitors live.</div>
+                        <div style={{ background: '#0F172A', borderRadius: 10, padding: '14px 18px', fontFamily: 'monospace', fontSize: 12, color: '#6EE7B7', textAlign: 'left' as const, maxWidth: 400, margin: '0 auto' }}>
+                          {"<script>window.heySynk={workspace:'"}{workspace.slug}{"'}</script>"}<br/>
+                          {'<script src="https://app.heysynk.app/widget.js"></script>'}
+                        </div>
+                      </div>
+                    ) : onlineVisitors.map(v => (
+                      <div key={v.id} style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: 18, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 14 }}>
+                        <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>👤</div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginBottom: 3 }}>{v.name || 'Anonymous Visitor'}</div>
+                          <div style={{ fontSize: 12, color: '#64748B' }}>{v.current_page} · {v.city ? v.city + ', ' : ''}{v.country || 'Unknown location'} · {v.device}</div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#16A34A' }} />
+                          <span style={{ fontSize: 11, color: '#16A34A', fontWeight: 600 }}>Live</span>
+                          <button style={{ padding: '6px 14px', borderRadius: 7, border: 'none', background: accent, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Chat</button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
                 {vpTab === 'recent' && (
                   <div style={{ padding: 24 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginBottom: 16 }}>Recent Visitors</div>
-                    {demoRecent.map((v, i) => (
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginBottom: 16 }}>Recent Visitors ({liveVisitors.length})</div>
+                    {liveVisitors.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: 40, color: '#94A3B8', fontSize: 13 }}>No recent visitors yet</div>
+                    ) : liveVisitors.map((v, i) => (
                       <div key={i} style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: '14px 18px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 14 }}>
                         <div style={{ width: 40, height: 40, borderRadius: '50%', background: avatarColor(v.name), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#fff', flexShrink: 0 }}>{initials(v.name)}</div>
                         <div style={{ flex: 1, minWidth: 0 }}>
