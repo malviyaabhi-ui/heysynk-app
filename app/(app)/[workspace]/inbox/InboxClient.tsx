@@ -1368,17 +1368,55 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
                         </div>
                       </div>
                     ) : onlineVisitors.map(v => (
-                      <div key={v.id} style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: 18, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 14 }}>
-                        <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>👤</div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginBottom: 3 }}>{v.name || 'Anonymous Visitor'}</div>
-                          <div style={{ fontSize: 12, color: '#64748B' }}>{v.current_page} · {v.city ? v.city + ', ' : ''}{v.country || 'Unknown location'} · {v.device}</div>
+                      <div key={v.id} style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: 18, marginBottom: 12, cursor: 'pointer' }}
+                        onClick={() => setSelectedVisitor(selectedVisitor === v.id ? null : v.id)}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                          <div style={{ width: 40, height: 40, borderRadius: '50%', background: avatarColor(v.name || 'V'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#fff', flexShrink: 0, position: 'relative' }}>
+                            {initials(v.name || 'V')}
+                            <div style={{ position: 'absolute', bottom: 0, right: 0, width: 10, height: 10, borderRadius: '50%', background: '#16A34A', border: '2px solid #fff' }} />
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>{v.name || 'Anonymous Visitor'}</div>
+                            <div style={{ fontSize: 12, color: '#64748B' }}>{v.current_page} · {v.city ? v.city + ', ' : ''}{v.country || 'Unknown'} · {v.device}</div>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                            <span style={{ fontSize: 11, color: '#16A34A', fontWeight: 600 }}>● Live</span>
+                            <button onClick={async e => {
+                              e.stopPropagation()
+                              const { data: conv } = await supabase.from('conversations').insert({ workspace_id: workspace.id, status: 'open', channel: 'live_chat', priority: 'normal', last_message: 'Started from Live Visitors', last_message_at: new Date().toISOString() }).select('*, contacts(*)').single()
+                              if (conv) { setActiveConv(conv); setActiveNav('inbox') }
+                            }} style={{ padding: '6px 14px', borderRadius: 7, border: 'none', background: accent, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Chat</button>
+                          </div>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#16A34A' }} />
-                          <span style={{ fontSize: 11, color: '#16A34A', fontWeight: 600 }}>Live</span>
-                          <button style={{ padding: '6px 14px', borderRadius: 7, border: 'none', background: accent, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Chat</button>
-                        </div>
+                        {selectedVisitor === v.id && (
+                          <div style={{ marginTop: 14 }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginBottom: 12 }}>
+                              {[
+                                { label: 'Current Page', value: v.current_page || '/' },
+                                { label: 'Location', value: (v.city ? v.city + ', ' : '') + (v.country || 'Unknown') },
+                                { label: 'IP Address', value: v.ip_address || 'Unknown' },
+                                { label: 'Entry Page', value: v.entry_page || '/' },
+                                { label: 'Pages Visited', value: String(v.total_pages || 1) + ' page' + ((v.total_pages || 1) !== 1 ? 's' : '') },
+                                { label: 'Device', value: v.device || 'Desktop' },
+                              ].map(d => (
+                                <div key={d.label} style={{ background: '#F8FAFC', borderRadius: 8, padding: '8px 10px' }}>
+                                  <div style={{ fontSize: 10, color: '#94A3B8', fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '.05em', marginBottom: 2 }}>{d.label}</div>
+                                  <div style={{ fontSize: 12, color: '#334155', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>{d.value}</div>
+                                </div>
+                              ))}
+                            </div>
+                            {Array.isArray(v.pages_visited) && v.pages_visited.length > 0 && (
+                              <div>
+                                <div style={{ fontSize: 10, color: '#94A3B8', fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '.05em', marginBottom: 6 }}>Page History</div>
+                                <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 5 }}>
+                                  {v.pages_visited.map((p: any, i: number) => (
+                                    <span key={i} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 5, background: p.path === v.current_page ? `${accent}15` : '#F1F5F9', color: p.path === v.current_page ? accent : '#64748B', border: p.path === v.current_page ? `1px solid ${accent}30` : '1px solid #E2E8F0' }}>{p.path}</span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
