@@ -175,30 +175,16 @@
     sessionStorage.setItem('hs_name', name);
     if (email) sessionStorage.setItem('hs_email', email);
 
-    // Create contact if email provided
-    var contactId = null;
-    if (email) {
-      var existing = await api('GET', 'contacts?workspace_id=eq.' + workspaceId + '&email=eq.' + encodeURIComponent(email) + '&select=id');
-      if (existing && existing[0]) { contactId = existing[0].id; }
-      else {
-        var newContact = await api('POST', 'contacts', { workspace_id: workspaceId, name: name || 'Visitor', email: email, status: 'active' });
-        if (newContact && newContact[0]) contactId = newContact[0].id;
-      }
-    }
-
-    // Create conversation
-    var conv = await api('POST', 'conversations', {
-      workspace_id: workspaceId, contact_id: contactId,
-      status: 'open', channel: 'live_chat', priority: 'normal',
-      last_message: firstMsg, last_message_at: new Date().toISOString(),
-      source_url: window.location.href,
-    });
-    if (conv && conv[0]) conversationId = conv[0].id;
-
-    // Insert first message
-    if (conversationId) {
-      await api('POST', 'messages', { conversation_id: conversationId, workspace_id: workspaceId, sender_type: 'contact', body: firstMsg, type: 'text' });
-    }
+    // Use server API to bypass RLS
+    try {
+      var res = await fetch('https://app.heysynk.app/api/widget/conversation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workspace_id: workspaceId, name: name, email: email, message: firstMsg, session_id: sessionId })
+      });
+      var data = await res.json();
+      if (data.conversation_id) conversationId = data.conversation_id;
+    } catch(e) { console.error('Widget conv error:', e); }
 
     // Show chat UI
     document.getElementById('hs-pre-chat').style.display = 'none';
@@ -215,7 +201,11 @@
 
     // Store AI reply as message
     if (conversationId) {
-      await api('POST', 'messages', { conversation_id: conversationId, workspace_id: workspaceId, sender_type: 'agent', body: reply, type: 'text' });
+      fetch('https://app.heysynk.app/api/widget/message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversation_id: conversationId, workspace_id: workspaceId, body: reply, sender_type: 'agent' })
+      }).catch(function(e) {});
     }
   }
 
@@ -223,7 +213,11 @@
     if (!text.trim()) return;
     addMessage(text, 'user');
     if (conversationId) {
-      await api('POST', 'messages', { conversation_id: conversationId, workspace_id: workspaceId, sender_type: 'contact', body: text, type: 'text' });
+      fetch('https://app.heysynk.app/api/widget/message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversation_id: conversationId, workspace_id: workspaceId, body: text })
+      }).catch(function(e) { console.error('Message save error:', e); });
     }
     showTyping();
     var context = 'Ongoing conversation. Visitor says: ' + text;
@@ -231,7 +225,11 @@
     removeTyping();
     addMessage(reply, 'bot');
     if (conversationId) {
-      await api('POST', 'messages', { conversation_id: conversationId, workspace_id: workspaceId, sender_type: 'agent', body: reply, type: 'text' });
+      fetch('https://app.heysynk.app/api/widget/message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversation_id: conversationId, workspace_id: workspaceId, body: reply, sender_type: 'agent' })
+      }).catch(function(e) {});
     }
   }
 
