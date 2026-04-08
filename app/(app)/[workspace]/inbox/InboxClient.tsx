@@ -142,6 +142,21 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
   const [liveVisitors, setLiveVisitors] = useState<any[]>([])
   const [selectedVisitor, setSelectedVisitor] = useState<string|null>(null)
   const [activityFilter, setActivityFilter] = useState('all')
+  const [slashOpen, setSlashOpen] = useState(false)
+  const [slashQuery, setSlashQuery] = useState('')
+  const [slashIdx, setSlashIdx] = useState(0)
+  const CANNED = [
+    { id:'cr1', shortcut:'/hello',   name:'Greeting',       category:'Greetings', text:"Hi {{name}}! Thanks for reaching out. I am {{agent}} and I am here to help. What can I do for you today?" },
+    { id:'cr2', shortcut:'/bye',     name:'Closing',        category:'Closings',  text:"Thanks for contacting us, {{name}}! Is there anything else I can help you with? Have a wonderful day!" },
+    { id:'cr3', shortcut:'/refund',  name:'Refund Policy',  category:'Returns',   text:"Our refund policy allows returns within 30 days of purchase. Refunds are processed within 5-7 business days." },
+    { id:'cr4', shortcut:'/track',   name:'Order Tracking', category:'Shipping',  text:"You can track your order by clicking the link in your shipping confirmation email, or visiting My Account > My Orders." },
+    { id:'cr5', shortcut:'/wait',    name:'Please Hold',    category:'General',   text:"Thanks for your patience, {{name}}! I am looking into this right now - back with you in just a moment." },
+    { id:'cr6', shortcut:'/pass',    name:'Reset Password', category:'Technical', text:"To reset your password: go to login page > Forgot Password > enter your email > check inbox. Link expires in 24 hours." },
+    { id:'cr7', shortcut:'/billing', name:'Billing Query',  category:'Billing',   text:"Could you share your order number or the email on your account so I can pull up your billing history?" },
+    { id:'cr8', shortcut:'/sorry',   name:'Apology',        category:'General',   text:"I am really sorry to hear that, {{name}}. That is not the experience we want. Let me look into this right away." },
+    { id:'cr9', shortcut:'/esc',     name:'Escalate',       category:'Technical', text:"I am escalating this to our specialist team who will follow up within 2 business hours. I have noted all the details." },
+    { id:'cr10',shortcut:'/hours',   name:'Support Hours',  category:'General',   text:"Our support team is available Monday-Friday, 9am-6pm. Browse our Help Centre for instant answers outside these hours." },
+  ]
   const [inviteName, setInviteName] = useState('')
   const [inviteEmail, setInviteEmailVal] = useState('')
   const [inviteRole, setInviteRole] = useState('Agent')
@@ -413,6 +428,22 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
     } catch (e) { console.error('Activity log error:', e) }
   }
 
+  function insertCannedResponse(item: any) {
+    const customerName = activeConv?.contacts?.name?.split(' ')[0] || 'there'
+    const text = item.text
+      .replace(/{{name}}/g, customerName)
+      .replace(/{{agent}}/g, agent.name.split(' ')[0])
+      .replace(/{{workspace}}/g, workspace.name)
+      .replace(/{{date}}/g, new Date().toLocaleDateString())
+    setReply(text)
+    setSlashOpen(false)
+    setSlashQuery('')
+  }
+
+  const slashFiltered = slashQuery
+    ? CANNED.filter(r => r.shortcut.includes(slashQuery) || r.name.toLowerCase().includes(slashQuery) || r.category.toLowerCase().includes(slashQuery))
+    : CANNED
+
   const cssStyles = '@keyframes glow-pulse{0%,100%{opacity:1}50%{opacity:0.5}} @keyframes spin{to{transform:rotate(360deg)}} *{box-sizing:border-box}'
 
   return (
@@ -607,7 +638,44 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
                     <button onClick={() => setNoteMode(true)} style={{ fontSize: 12, fontWeight: 600, padding: '4px 12px', borderRadius: 6, border: noteMode ? '1.5px solid #F59E0B' : '1.5px solid #E2E8F0', background: noteMode ? '#FFFBEB' : 'transparent', color: noteMode ? '#D97706' : '#94A3B8', cursor: 'pointer' }}>Note</button>
                   </div>
                   <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
-                    <textarea value={reply} onChange={e => setReply(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) sendMessage() }} placeholder={noteMode ? 'Write an internal note...' : 'Type a reply... (Cmd+Enter to send)'} rows={3} style={{ flex: 1, padding: '10px 14px', borderRadius: 10, resize: 'none', outline: 'none', fontSize: 14, lineHeight: 1.6, border: noteMode ? '1.5px solid #FDE68A' : '1.5px solid #E2E8F0', background: noteMode ? '#FFFBEB' : '#F8FAFC', color: '#334155', fontFamily: 'inherit' }} />
+                    {slashOpen && slashFiltered.length > 0 && (
+                <div style={{ position: 'absolute', bottom: '100%', left: 0, right: 0, background: '#fff', borderRadius: '12px 12px 0 0', border: '1px solid #E2E8F0', borderBottom: 'none', boxShadow: '0 -8px 24px rgba(0,0,0,0.08)', zIndex: 10, overflow: 'hidden' }}>
+                  <div style={{ padding: '8px 14px', background: '#F8FAFC', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase' as const, letterSpacing: '.05em' }}>Canned Responses · /{slashQuery}</span>
+                    <span style={{ fontSize: 10, color: '#CBD5E1' }}>↑↓ navigate · Enter to insert · Esc to close</span>
+                  </div>
+                  <div style={{ maxHeight: 220, overflowY: 'auto' as const }}>
+                    {slashFiltered.map((r, i) => (
+                      <div key={r.id} onClick={() => insertCannedResponse(r)}
+                        onMouseEnter={() => setSlashIdx(i)}
+                        style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid #F8FAFC', background: i === slashIdx ? `${accent}08` : '#fff' }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 5, background: i === slashIdx ? `${accent}15` : '#F1F5F9', color: i === slashIdx ? accent : '#64748B', fontFamily: 'monospace', flexShrink: 0 }}>{r.shortcut}</span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: '#0F172A', marginBottom: 1 }}>{r.name}</div>
+                          <div style={{ fontSize: 11, color: '#94A3B8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>{r.text.substring(0, 60)}…</div>
+                        </div>
+                        <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 4, background: '#F1F5F9', color: '#94A3B8', flexShrink: 0 }}>{r.category}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <textarea value={reply} onChange={e => {
+                    const val = e.target.value
+                    setReply(val)
+                    const slashMatch = val.match(/^\/(\S*)$/)
+                    if (slashMatch) { setSlashOpen(true); setSlashQuery(slashMatch[1]); setSlashIdx(0) }
+                    else { setSlashOpen(false) }
+                  }}
+                  onKeyDown={e => {
+                    if (!slashOpen) return
+                    if (e.key === 'ArrowDown') { e.preventDefault(); setSlashIdx(i => Math.min(i+1, slashFiltered.length-1)) }
+                    else if (e.key === 'ArrowUp') { e.preventDefault(); setSlashIdx(i => Math.max(i-1, 0)) }
+                    else if (e.key === 'Enter' && slashFiltered[slashIdx]) { e.preventDefault(); insertCannedResponse(slashFiltered[slashIdx]) }
+                    else if (e.key === 'Escape') { setSlashOpen(false) }
+                    else if (e.key === 'Tab' && slashFiltered[slashIdx]) { e.preventDefault(); insertCannedResponse(slashFiltered[slashIdx]) }
+                    else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) sendMessage()
+                  }} placeholder={noteMode ? 'Write an internal note...' : 'Type a reply... (/ for shortcuts, Cmd+Enter to send)'} rows={3} style={{ flex: 1, padding: '10px 14px', borderRadius: 10, resize: 'none', outline: 'none', fontSize: 14, lineHeight: 1.6, border: noteMode ? '1.5px solid #FDE68A' : '1.5px solid #E2E8F0', background: noteMode ? '#FFFBEB' : '#F8FAFC', color: '#334155', fontFamily: 'inherit' }} />
                     <button onClick={sendMessage} disabled={sending || !reply.trim()} style={{ width: 40, height: 40, borderRadius: 10, border: 'none', flexShrink: 0, background: reply.trim() ? accent : '#E2E8F0', cursor: reply.trim() ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
                     </button>
