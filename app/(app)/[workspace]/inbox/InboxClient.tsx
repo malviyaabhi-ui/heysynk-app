@@ -1,4 +1,5 @@
 'use client'
+import ConvRightPanel from './ConvRightPanel'
 import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -143,6 +144,7 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
   const [selectedVisitor, setSelectedVisitor] = useState<string|null>(null)
   const [activityFilter, setActivityFilter] = useState('all')
   const [slashOpen, setSlashOpen] = useState(false)
+  const [rpOpen, setRpOpen] = useState(false)
   const [slashQuery, setSlashQuery] = useState('')
   const [slashIdx, setSlashIdx] = useState(0)
   const CANNED = [
@@ -590,7 +592,11 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
                     {activeConv.status !== 'resolved' && (
-                      <button onClick={resolveConversation} style={{ padding: '7px 14px', borderRadius: 8, border: '1.5px solid #22C55E', background: 'transparent', color: '#16A34A', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <button onClick={() => setRpOpen(o => !o)} style={{ padding: '7px 14px', borderRadius: 8, border: `1.5px solid ${rpOpen ? accent : '#E2E8F0'}`, background: rpOpen ? `${accent}10` : '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: rpOpen ? accent : '#64748B', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                  Details
+                </button>
+                <button onClick={resolveConversation} style={{ padding: '7px 14px', borderRadius: 8, border: '1.5px solid #22C55E', background: 'transparent', color: '#16A34A', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                         Resolve
                       </button>
@@ -1008,6 +1014,9 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
           )
         })()}
           </div>
+        )}
+        {activeNav === 'inbox' && activeConv && rpOpen && (
+          <ConvRightPanel conv={activeConv} agent={agent} workspace={workspace} accent={accent} onClose={() => setRpOpen(false)} />
         )}
 
         {/* CONTACTS */}
