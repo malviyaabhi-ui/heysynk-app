@@ -450,7 +450,7 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
 
   return (
     <>
-      <style dangerouslySetInnerHTML={{ __html: cssStyles }} />
+      <style>{cssStyles}</style>
       <div style={{ display: 'flex', height: '100vh', background: '#fff', fontFamily: '"SF Pro Display",-apple-system,BlinkMacSystemFont,sans-serif', overflow: 'hidden' }}>
 
         {/* SIDEBAR */}
