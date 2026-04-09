@@ -446,11 +446,9 @@ export default function InboxClient({ agent, workspace }: { agent: Agent; worksp
     ? CANNED.filter(r => r.shortcut.includes(slashQuery) || r.name.toLowerCase().includes(slashQuery) || r.category.toLowerCase().includes(slashQuery))
     : CANNED
 
-  const cssStyles = '@keyframes glow-pulse{0%,100%{opacity:1}50%{opacity:0.5}} @keyframes spin{to{transform:rotate(360deg)}} *{box-sizing:border-box}'
-
   return (
     <>
-      <style>{cssStyles}</style>
+      <style>{`@keyframes glow-pulse{0%,100%{opacity:1}50%{opacity:.5}}@keyframes spin{to{transform:rotate(360deg)}}*{box-sizing:border-box}`}</style>
       <div style={{ display: 'flex', height: '100vh', background: '#fff', fontFamily: '"SF Pro Display",-apple-system,BlinkMacSystemFont,sans-serif', overflow: 'hidden' }}>
 
         {/* SIDEBAR */}
